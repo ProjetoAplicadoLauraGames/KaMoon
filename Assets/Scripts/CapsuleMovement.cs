@@ -9,12 +9,14 @@ using UnityEngine.InputSystem;
 public class CapsuleMovement : MonoBehaviour
 {
     [Header("Movimento")]
+    [Tooltip("Se ativo, usa as setas do teclado em vez de WASD.")]
+    [SerializeField] private bool useArrowKeys = false;
     [SerializeField] private float moveSpeed = 6f;
-    [SerializeField] private float turnSmoothTime = 0.08f;
-    [SerializeField] private float jumpForce = 5f;
 
     [Header("Mouse Look")]
-    [SerializeField] private float mouseSensitivity = 1f;
+    [Tooltip("Desativar na cápsula que é movida apenas pelas setas.")]
+    [SerializeField] private bool mouseLook = true;
+    [SerializeField] private float mouseSensitivity = 0.8f;
     [SerializeField] private float minPitch = -85f;
     [SerializeField] private float maxPitch = 85f;
     [SerializeField] private bool lockCursor = true;
@@ -30,12 +32,9 @@ public class CapsuleMovement : MonoBehaviour
     private Collider bodyCollider;
     private Collider groundCollider;
     private Vector3 moveInput;
-    private float turnVelocity;
 
     private Camera playerCamera;
     private float pitch = 0f;
-    private bool isGrounded;
-    private float groundCheckDistance = 0.1f;
 
     private void Awake()
     {
@@ -58,7 +57,7 @@ public class CapsuleMovement : MonoBehaviour
         if (playerCamera == null)
             playerCamera = Camera.main;
 
-        if (lockCursor)
+        if (mouseLook && lockCursor)
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -73,32 +72,15 @@ public class CapsuleMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        CheckGrounded();
-
         Vector3 direction = CameraRelativeDirection(moveInput);
 
         Vector3 velocity = rb.linearVelocity;
         velocity.x = direction.x * moveSpeed;
         velocity.z = direction.z * moveSpeed;
-
-        // Salto
-        if (isGrounded && Keyboard.current != null && Keyboard.current.spaceKey.isPressed)
-        {
-            velocity.y = jumpForce;
-        }
-
         rb.linearVelocity = velocity;
 
         if (preventFallingThrough)
             KeepAboveGround();
-    }
-
-    private void CheckGrounded()
-    {
-        if (bodyCollider == null) return;
-        float rayStart = transform.position.y;
-        float rayLength = bodyCollider.bounds.extents.y + groundCheckDistance;
-        isGrounded = Physics.Raycast(transform.position, Vector3.down, rayLength, ~0, QueryTriggerInteraction.Ignore);
     }
 
     private void ReadInput()
@@ -106,12 +88,18 @@ public class CapsuleMovement : MonoBehaviour
         moveInput = Vector3.zero;
 
         Keyboard keyboard = Keyboard.current;
-        if (keyboard != null)
+        if (keyboard == null)
+            return;
+
+        if (useArrowKeys)
         {
-            if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) moveInput.z += 1f;
-            if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) moveInput.z -= 1f;
-            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) moveInput.x += 1f;
-            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) moveInput.x -= 1f;
+            moveInput.z = (keyboard.upArrowKey.isPressed ? 1f : 0f) + (keyboard.downArrowKey.isPressed ? -1f : 0f);
+            moveInput.x = (keyboard.rightArrowKey.isPressed ? 1f : 0f) + (keyboard.leftArrowKey.isPressed ? -1f : 0f);
+        }
+        else
+        {
+            moveInput.z = (keyboard.wKey.isPressed ? 1f : 0f) + (keyboard.sKey.isPressed ? -1f : 0f);
+            moveInput.x = (keyboard.dKey.isPressed ? 1f : 0f) + (keyboard.aKey.isPressed ? -1f : 0f);
         }
 
         moveInput = Vector3.ClampMagnitude(moveInput, 1f);
@@ -119,7 +107,7 @@ public class CapsuleMovement : MonoBehaviour
 
     private void HandleMouseLook()
     {
-        if (playerCamera == null)
+        if (!mouseLook || playerCamera == null)
             return;
 
         Mouse mouse = Mouse.current;
@@ -138,7 +126,7 @@ public class CapsuleMovement : MonoBehaviour
         playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
-    /// <summary>W = para a frente da câmara, A/D = esquerda/direita da câmara.</summary>
+    /// <summary>Moves relative to camera forward/right axes.</summary>
     private Vector3 CameraRelativeDirection(Vector3 input)
     {
         if (input.sqrMagnitude < 0.0001f)
@@ -156,17 +144,6 @@ public class CapsuleMovement : MonoBehaviour
         right.Normalize();
 
         return Vector3.ClampMagnitude(forward * input.z + right * input.x, 1f);
-    }
-
-    private void RotateTo(Vector3 direction)
-    {
-        if (direction.sqrMagnitude < 0.0001f)
-            return;
-
-        float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
-        float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle,
-                                            ref turnVelocity, turnSmoothTime);
-        transform.rotation = Quaternion.Euler(0f, angle, 0f);
     }
 
     /// <summary>
