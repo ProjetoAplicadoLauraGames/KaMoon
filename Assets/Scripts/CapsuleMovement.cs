@@ -13,6 +13,12 @@ public class CapsuleMovement : MonoBehaviour
     [SerializeField] private bool useArrowKeys = false;
     [SerializeField] private float moveSpeed = 6f;
 
+    [Header("Comando (Player 2)")]
+    [Tooltip("Se ativo, usa o gamepad (leftStick para mover). Faz fallback para teclado se não houver comando.")]
+    [SerializeField] private bool useGamepad = false;
+    [SerializeField] private float gamepadSensitivity = 2.2f;
+    [SerializeField] private float stickDeadzone = 0.15f;
+
     [Header("Mouse Look")]
     [Tooltip("Desativar na cápsula que é movida apenas pelas setas.")]
     [SerializeField] private bool mouseLook = true;
@@ -57,7 +63,7 @@ public class CapsuleMovement : MonoBehaviour
         if (playerCamera == null)
             playerCamera = Camera.main;
 
-        if (mouseLook && lockCursor)
+        if (!useGamepad && mouseLook && lockCursor)
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -87,6 +93,23 @@ public class CapsuleMovement : MonoBehaviour
     {
         moveInput = Vector3.zero;
 
+        // P2: tenta gamepad primeiro, com fallback para teclado
+        // (permite testar sem comando ligado).
+        if (useGamepad)
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                Vector2 stick = gamepad.leftStick.ReadValue();
+                if (stick.magnitude > stickDeadzone)
+                {
+                    moveInput = new Vector3(stick.x, 0f, stick.y);
+                    moveInput = Vector3.ClampMagnitude(moveInput, 1f);
+                    return;
+                }
+            }
+        }
+
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
             return;
@@ -107,7 +130,35 @@ public class CapsuleMovement : MonoBehaviour
 
     private void HandleMouseLook()
     {
-        if (!mouseLook || playerCamera == null)
+        if (playerCamera == null)
+            return;
+
+        // P2 com comando: rightStick controla yaw/pitch.
+        // Funciona mesmo com mouseLook=false (só P1 usa rato).
+        if (useGamepad)
+        {
+            Gamepad gamepad = Gamepad.current;
+            if (gamepad != null)
+            {
+                Vector2 look = gamepad.rightStick.ReadValue();
+                if (look.magnitude > stickDeadzone)
+                {
+                    float yawPad = look.x * gamepadSensitivity;
+                    transform.Rotate(0f, yawPad, 0f);
+
+                    pitch -= look.y * gamepadSensitivity;
+                    pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+                    playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+                    return;
+                }
+            }
+
+            // Sem input do stick: se mouseLook=false, P2 fica sem look (3ª pessoa / setas).
+            if (!mouseLook)
+                return;
+        }
+
+        if (!mouseLook)
             return;
 
         Mouse mouse = Mouse.current;
