@@ -1,10 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Garante splitscreen vertical P1 esquerda / P2 direita
-/// e que só existe 1 AudioListener ativo (P1).
-/// Colocar uma vez na cena (ex: objeto SplitScreenManager).
-/// </summary>
 public class SplitScreenManager : MonoBehaviour
 {
     public enum SplitLayout { Horizontal, Vertical }
