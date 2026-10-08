@@ -1945,9 +1945,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f8a2c1d4e3b6a7c9d0e1f2a3b4c5d6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  useArrowKeys: 0
   moveSpeed: 6
-  turnSmoothTime: 0.08
-  jumpForce: 5
+  useGamepad: 0
+  gamepadSensitivity: 2.2
+  stickDeadzone: 0.15
+  mouseLook: 1
   mouseSensitivity: 1
   minPitch: -85
   maxPitch: 85
