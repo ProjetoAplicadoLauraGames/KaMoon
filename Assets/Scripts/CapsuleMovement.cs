@@ -34,6 +34,12 @@ public class CapsuleMovement : MonoBehaviour
     [SerializeField] private float groundTolerance = 0.35f;
     [SerializeField] private bool preventFallingThrough = true;
 
+    [Header("Animação")]
+    [Tooltip("Animator no modelo. Se vazio, procura nos filhos.")]
+    [SerializeField] private Animator animator;
+    [Tooltip("Nome do parâmetro float de velocidade no Animator.")]
+    [SerializeField] private string speedParam = "Speed";
+
     private Rigidbody rb;
     private Collider bodyCollider;
     private Collider groundCollider;
@@ -63,6 +69,10 @@ public class CapsuleMovement : MonoBehaviour
         if (playerCamera == null)
             playerCamera = Camera.main;
 
+        // Animator está no modelo (filho do Player)
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
         if (!useGamepad && mouseLook && lockCursor)
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -84,6 +94,9 @@ public class CapsuleMovement : MonoBehaviour
         velocity.x = direction.x * moveSpeed;
         velocity.z = direction.z * moveSpeed;
         rb.linearVelocity = velocity;
+
+        if (animator != null)
+            animator.SetFloat(speedParam, new Vector2(velocity.x, velocity.z).magnitude);
 
         if (preventFallingThrough)
             KeepAboveGround();
