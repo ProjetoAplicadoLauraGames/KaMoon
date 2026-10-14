@@ -43,8 +43,12 @@ public class LocalVoiceChat : MonoBehaviour
     private InputAction talkActionP1;
     private InputAction talkActionP2;
     private Coroutine transmitRoutine;
-    private int talkingPlayer;
+    private int talkingPlayer; // 0 = ninguém, 1 = P1, 2 = P2
+
+    /// <summary>Jogador a transmitir agora (0 = ninguém). Usado pela bateria.</summary>
+    public int TalkingPlayer => talkingPlayer;
     private string error;
+    private Battery[] batteries;
     private bool restartPending;
     private float micLevel;
     private readonly float[] levelSamples = new float[256];
@@ -78,11 +82,25 @@ public class LocalVoiceChat : MonoBehaviour
         talkActionP2.canceled += _ => StopTransmit(2);
     }
 
+    /// <summary>Verdadeiro se a bateria do jogador bloqueia o voice (task #17).</summary>
+    private bool BatteryDepleted(int player)
+    {
+        if (batteries == null) return false;
+        foreach (Battery battery in batteries)
+        {
+            if (battery != null && battery.PlayerNumber == player && battery.IsDepleted)
+                return true;
+        }
+        return false;
+    }
+
     private void OnEnable()
     {
         talkActionP1.Enable();
         talkActionP2.Enable();
         AudioSettings.OnAudioConfigurationChanged += OnAudioConfigurationChanged;
+        // Sem bateria (task #17), o jogador não pode falar.
+        batteries = FindObjectsByType<Battery>(FindObjectsSortMode.None);
     }
 
     private void Update()
@@ -99,6 +117,13 @@ public class LocalVoiceChat : MonoBehaviour
         }
 
         UpdateMicLevel();
+
+        // A bateria pode esgotar a meio da fala: corta e avisa.
+        if (talkingPlayer != 0 && BatteryDepleted(talkingPlayer))
+        {
+            StopTransmit(talkingPlayer);
+            error = $"Bateria esgotada (P{talkingPlayer}): voice bloqueado.";
+        }
     }
 
     private void OnAudioConfigurationChanged(bool deviceWasChanged)
@@ -117,6 +142,12 @@ public class LocalVoiceChat : MonoBehaviour
             return;
 
         error = null;
+        // Sem bateria (task #17), o jogador não pode falar.
+        if (BatteryDepleted(player))
+        {
+            error = $"Sem bateria (P{player}): voice bloqueado.";
+            return;
+        }
         if (Microphone.devices.Length == 0)
         {
             error = "Sem microfone disponível.";

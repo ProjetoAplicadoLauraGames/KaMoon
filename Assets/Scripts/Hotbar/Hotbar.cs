@@ -178,8 +178,38 @@ public class Hotbar : MonoBehaviour
 
         if (item.itemId == "flashlight")
             UseFlashlight(item);
+        else if (item.itemId == "battery")
+            UseBattery(item);
         else
-            Debug.Log($"[Hotbar P{playerNumber}] Usar '{item.displayName}' (sem comportamento; ligar na task da bateria).");
+            Debug.Log($"[Hotbar P{playerNumber}] Usar '{item.displayName}' (sem comportamento).");
+    }
+
+    /// <summary>Usar bateria: recarrega e consome o item (task #17).</summary>
+    private void UseBattery(HotbarItem item)
+    {
+        Battery battery = FindPlayerBattery();
+        if (battery == null)
+        {
+            Debug.LogWarning($"[Hotbar P{playerNumber}] Sem componente Battery no player.");
+            return;
+        }
+        if (battery.Charge >= 0.999f)
+        {
+            Debug.Log($"[Hotbar P{playerNumber}] Bateria já cheia.");
+            return;
+        }
+        battery.Recharge();
+        RemoveItem(item.itemId);
+    }
+
+    private Battery FindPlayerBattery()
+    {
+        foreach (Battery battery in FindObjectsByType<Battery>(FindObjectsSortMode.None))
+        {
+            if (battery.PlayerNumber == playerNumber)
+                return battery;
+        }
+        return null;
     }
 
     private void UseFlashlight(HotbarItem item)
