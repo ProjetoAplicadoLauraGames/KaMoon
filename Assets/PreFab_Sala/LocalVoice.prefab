@@ -51,8 +51,6 @@ MonoBehaviour:
   selfMonitor: 1
   radioEffect: 0
   outputVolume: 0.7
-  deviceIndex: 3
-  preferredDevice: 
   clipSeconds: 1
   showDebugPanel: 0
 --- !u!82 &3650809112182679268
