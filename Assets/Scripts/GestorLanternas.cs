@@ -38,14 +38,13 @@ public class GestorLanternas : MonoBehaviour
         }
     }
 
-    // --- CONTROLO DO PLAYER 2 (COMANDO XBOX / GAMEPAD) ---
+    // --- CONTROLO DO PLAYER 2 (COMANDO XBOX) ---
     private void VerificarInputCommando()
     {
         if (Gamepad.current == null) return;
 
-        // Player 2 carrega no botao X (Xbox: botao X / PlayStation: Quadrado)
-        // ou no botao Y / Gatilho se preferires mudar a tecla
-        if (Gamepad.current.buttonWest.wasPressedThisFrame) // buttonWest = Botao X da Xbox
+        // Lanterna no Botao Y da Xbox (buttonNorth)
+        if (Gamepad.current.buttonNorth.wasPressedThisFrame)
         {
             AtivarLanterna(2);
         }
