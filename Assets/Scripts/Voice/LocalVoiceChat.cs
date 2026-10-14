@@ -4,10 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Protótipo voz LOCAL (mesmo PC) com PTT e auto-escuta para testar o micro.
-/// V = P1 fala, B = P2 fala. Para já ambos fazem loopback para as colunas,
-/// por isso USA HEADSET e volume baixo para não fazer feedback.
-/// Colocar uma vez na cena (objeto LocalVoice). Funciona em qualquer cena.
+/// Voz local com push-to-talk e auto-escuta para testar o microfone.
+/// Usa a entrada predefinida do sistema em cada transmissão.
+/// P1: V. P2: RB no comando, com B como alternativa no teclado.
 /// </summary>
 [RequireComponent(typeof(AudioSource))]
 public class LocalVoiceChat : MonoBehaviour
@@ -17,256 +16,201 @@ public class LocalVoiceChat : MonoBehaviour
     [SerializeField] private string talkBindingP1 = "<Keyboard>/v";
     [Tooltip("P2 usa comando (RB).")]
     [SerializeField] private string talkBindingP2 = "<Gamepad>/rightShoulder";
-    [Tooltip("Fallback para testar P2 sem comando ligado.")]
     [SerializeField] private string talkBindingP2Fallback = "<Keyboard>/b";
 
     [Header("Teste local")]
-    [Tooltip("ON = ouves-te a ti próprio (para validar micro). OFF = mudo local (para 2 headsets).")]
+    [Tooltip("Reproduz a captura neste PC para testar o microfone. OFF desliga apenas a auto-escuta.")]
     [SerializeField] private bool selfMonitor = true;
-    [Tooltip("Simula rádio (lowpass). OFF = voz limpa. Liga só para prova de walkie-talkie.")]
+    [Tooltip("Simula rádio. OFF mantém a voz sem o filtro.")]
     [SerializeField] private bool radioEffect = false;
-    [Tooltip("Volume de saída. Baixa se distorcer.")]
     [SerializeField, Range(0f, 1f)] private float outputVolume = 0.7f;
 
-    [Header("Microfone")]
-    [Tooltip("Índice em Microphone.devices (só vale nesta máquina). Noutro PC usa palavra-chave ou teclas 1-9.")]
-    [SerializeField] private int deviceIndex = -1;
-    [Tooltip("Ex: 'headset'. Se algum micro contiver isto, é escolhido em qualquer PC.")]
-    [SerializeField] private string preferredDevice = "";
-    [SerializeField] private int clipSeconds = 1;
+    [Header("Microfone predefinido do sistema")]
+    [SerializeField, Min(1)] private int clipSeconds = 1;
 
     [Header("UI")]
-    [Tooltip("ON = painel completo de teste. OFF = só indicador a transmitir (para o jogo).")]
+    [Tooltip("Mostra os dados da captura para diagnosticar o áudio.")]
     [SerializeField] private bool showDebugPanel = false;
 
-    private const string MicPrefKey = "voiceMic";
+    // null identifica o microfone predefinido em todas as APIs Microphone.
+    // Não escolher devices[0]: pode ser um monitor, ou um micro antigo.
+    private const string DefaultDevice = null;
+    private const float StartupTimeout = 3f;
+    private const float MonitorLatency = 0.05f;
 
     private AudioSource output;
     private AudioClip micClip;
-    private string device;
-    private int talkingPlayer; // 0 = ninguém, 1 = P1, 2 = P2
-    private string error;
     private InputAction talkActionP1;
     private InputAction talkActionP2;
     private Coroutine transmitRoutine;
+    private int talkingPlayer; // 0 = ninguém, 1 = P1, 2 = P2
 
-    private void Update()
-    {
-        // Teclas 1-9 trocam de micro em direto (novo Input System).
-        var kb = Keyboard.current;
-        if (kb == null) return;
-        if (kb.digit1Key.wasPressedThisFrame) SetDevice(0);
-        if (kb.digit2Key.wasPressedThisFrame) SetDevice(1);
-        if (kb.digit3Key.wasPressedThisFrame) SetDevice(2);
-        if (kb.digit4Key.wasPressedThisFrame) SetDevice(3);
-        if (kb.digit5Key.wasPressedThisFrame) SetDevice(4);
-        if (kb.digit6Key.wasPressedThisFrame) SetDevice(5);
-        if (kb.digit7Key.wasPressedThisFrame) SetDevice(6);
-        if (kb.digit8Key.wasPressedThisFrame) SetDevice(7);
-        if (kb.digit9Key.wasPressedThisFrame) SetDevice(8);
-        if (kb.tKey.wasPressedThisFrame) StartCalibration();
-    }
-
-    private void SetDevice(int index)
-    {
-        if (index < 0 || index >= Microphone.devices.Length || index == deviceIndex) return;
-        int who = talkingPlayer;
-        if (who != 0) StopTransmit(who);
-        deviceIndex = index;
-        // Memoriza por máquina: no próximo arranque (Linux ou Windows) reusa este.
-        PlayerPrefs.SetString(MicPrefKey, Microphone.devices[index]);
-        PlayerPrefs.Save();
-        if (who != 0) StartTransmit(who);
-    }
-
-        private Coroutine calibrateRoutine;
-    private string calibrateDevice;
-
-    private void StartCalibration()
-    {
-        if (calibrateRoutine != null || talkingPlayer != 0) return;
-        calibrateRoutine = StartCoroutine(CalibrateRoutine());
-    }
-
-    private IEnumerator CalibrateRoutine()
-    {
-        error = null;
-        float best = 0f;
-        string winner = null;
-        foreach (var d in Microphone.devices)
-        {
-            if (IsMonitor(d)) continue; // saída, nunca micro
-            calibrateDevice = d;
-            int minF, maxF;
-            Microphone.GetDeviceCaps(d, out minF, out maxF);
-            int rate = maxF == 0 ? AudioSettings.outputSampleRate : Mathf.Clamp(AudioSettings.outputSampleRate, minF, maxF);
-            var clip = Microphone.Start(d, true, 1, rate);
-            float t = 0f;
-            while (t < 0.8f) { t += Time.deltaTime; yield return null; }
-            float peak = MeasurePeak(clip, d);
-            if (Microphone.IsRecording(d)) Microphone.End(d);
-            if (clip != null) Destroy(clip);
-            if (peak > best) { best = peak; winner = d; }
-        }
-        calibrateDevice = null;
-        if (winner != null && best > 0.01f)
-        {
-            PlayerPrefs.SetString(MicPrefKey, winner);
-            PlayerPrefs.Save();
-            device = winner;
-            int idx = Array.IndexOf(Microphone.devices, winner);
-            if (idx >= 0) deviceIndex = idx;
-            error = null;
-        }
-        else
-        {
-            error = "Calibração: não ouvi nada. Fala mais alto e prime T.";
-        }
-        calibrateRoutine = null;
-    }
-
-    private static float MeasurePeak(AudioClip clip, string dev)
-    {
-        if (clip == null) return 0f;
-        int pos = Microphone.GetPosition(dev);
-        int count = Math.Min(4000, pos);
-        if (count <= 0) return 0f;
-        float[] data = new float[count];
-        clip.GetData(data, pos - count);
-        float peak = 0f;
-        foreach (var s in data)
-        {
-            float a = Math.Abs(s);
-            if (a > peak) peak = a;
-        }
-        return peak;
-    }
-
-    private string ResolveDevice()
-    {
-        var list = Microphone.devices;
-        if (list.Length == 0) return null;
-        // 1. Último micro que funcionou nesta máquina.
-        string saved = PlayerPrefs.GetString(MicPrefKey, "");
-        if (!string.IsNullOrEmpty(saved))
-            foreach (var d in list) if (d == saved) return d;
-        // 2. Palavra-chave (portátil entre Linux/Windows).
-        if (!string.IsNullOrEmpty(preferredDevice))
-            foreach (var d in list)
-                if (d.IndexOf(preferredDevice, StringComparison.OrdinalIgnoreCase) >= 0) return d;
-        // 3. Automático: headset/USB primeiro; "monitor" nunca (é saída, não micro).
-        // Genéricos "default" ficam para último: no Linux nem sempre gravam.
-        foreach (var d in list) if (IsHeadsetMic(d)) return d;
-        foreach (var d in list) if (!IsMonitor(d) && !IsGenericDefault(d)) return d;
-        // 4. Índice da cena ou primeiro.
-        if (deviceIndex >= 0 && deviceIndex < list.Length) return list[deviceIndex];
-        return list[0];
-    }
-
-    private static bool IsMonitor(string n)
-    {
-        return n.IndexOf("monitor", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-    private static bool IsGenericDefault(string n)
-    {
-        return n.IndexOf("default", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-    private static readonly string[] HeadsetHints =
-        { "headset", "headphone", "usb", "bluetooth", "wireless", "external", "webcam" };
-
-    private static bool IsHeadsetMic(string n)
-    {
-        if (IsMonitor(n)) return false;
-        foreach (var h in HeadsetHints)
-            if (n.IndexOf(h, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-        return false;
-    }
+    /// <summary>Jogador a transmitir agora (0 = ninguém). Usado pela bateria.</summary>
+    public int TalkingPlayer => talkingPlayer;
+    private string error;
+    private Battery[] batteries;
+    private bool restartPending;
+    private float micLevel;
+    private readonly float[] levelSamples = new float[256];
 
     private void Awake()
     {
         output = GetComponent<AudioSource>();
-        if (output == null)
-            output = gameObject.AddComponent<AudioSource>();
-        output.loop = true;
         output.playOnAwake = false;
+        output.loop = true;
         output.volume = outputVolume;
         output.pitch = 1f;
-        output.spatialBlend = 0f; // 2D: sem atenuação 3D a estragar o nível
+        output.spatialBlend = 0f;
 
-        if (radioEffect && GetComponent<AudioLowPassFilter>() == null)
+        AudioLowPassFilter filter = GetComponent<AudioLowPassFilter>();
+        if (radioEffect && filter == null)
+            filter = gameObject.AddComponent<AudioLowPassFilter>();
+        if (filter != null)
         {
-            var lp = gameObject.AddComponent<AudioLowPassFilter>();
-            lp.cutoffFrequency = 2800f;
+            filter.enabled = radioEffect;
+            filter.cutoffFrequency = 2800f;
         }
 
-        talkActionP1 = new InputAction("TalkP1", binding: talkBindingP1);
+        talkActionP1 = new InputAction("TalkP1", InputActionType.Button, talkBindingP1);
         talkActionP1.performed += _ => StartTransmit(1);
         talkActionP1.canceled += _ => StopTransmit(1);
-        talkActionP1.Enable();
 
-        talkActionP2 = new InputAction("TalkP2");
+        talkActionP2 = new InputAction("TalkP2", InputActionType.Button);
         talkActionP2.AddBinding(talkBindingP2);
         talkActionP2.AddBinding(talkBindingP2Fallback);
         talkActionP2.performed += _ => StartTransmit(2);
         talkActionP2.canceled += _ => StopTransmit(2);
+    }
+
+    /// <summary>Verdadeiro se a bateria do jogador bloqueia o voice (task #17).</summary>
+    private bool BatteryDepleted(int player)
+    {
+        if (batteries == null) return false;
+        foreach (Battery battery in batteries)
+        {
+            if (battery != null && battery.PlayerNumber == player && battery.IsDepleted)
+                return true;
+        }
+        return false;
+    }
+
+    private void OnEnable()
+    {
+        talkActionP1.Enable();
         talkActionP2.Enable();
+        AudioSettings.OnAudioConfigurationChanged += OnAudioConfigurationChanged;
+        // Sem bateria (task #17), o jogador não pode falar.
+        batteries = FindObjectsByType<Battery>(FindObjectsSortMode.None);
+    }
+
+    private void Update()
+    {
+        // Reinicia no frame seguinte a uma mudança de dispositivo/saída.
+        // O sistema operativo decide qual é a entrada predefinida atual.
+        if (restartPending)
+        {
+            restartPending = false;
+            int player = talkingPlayer;
+            StopCapture();
+            if (player != 0 && IsTalkHeld(player))
+                StartTransmit(player);
+        }
+
+        UpdateMicLevel();
+
+        // A bateria pode esgotar a meio da fala: corta e avisa.
+        if (talkingPlayer != 0 && BatteryDepleted(talkingPlayer))
+        {
+            StopTransmit(talkingPlayer);
+            error = $"Bateria esgotada (P{talkingPlayer}): voice bloqueado.";
+        }
+    }
+
+    private void OnAudioConfigurationChanged(bool deviceWasChanged)
+    {
+        restartPending = true;
+    }
+
+    private bool IsTalkHeld(int player)
+    {
+        return player == 1 ? talkActionP1.IsPressed() : talkActionP2.IsPressed();
     }
 
     private void StartTransmit(int player)
     {
-        if (talkingPlayer != 0 || transmitRoutine != null) return; // half-duplex: um de cada vez
-
-        if (Microphone.devices.Length == 0)
-        {
-            error = "Sem microfone detetado.";
+        if (!isActiveAndEnabled || talkingPlayer != 0)
             return;
-        }
-
-        // Usa sempre o nome explícito do dispositivo:
-        // GetPosition(null) devolve 0 e a espera pelo arranque nunca terminava.
-        // A escolha é portátil: micro memorizado > palavra-chave > índice > primeiro.
-        device = ResolveDevice();
-        if (device == null)
-        {
-            error = "Sem microfone detetado.";
-            return;
-        }
 
         error = null;
-        // Escolhe taxa suportada pelo micro: output rate se suportado,
-        // senão o máximo do dispositivo (44100 fixo partia alguns micros).
-        int minFreq, maxFreq;
-        Microphone.GetDeviceCaps(device, out minFreq, out maxFreq);
-        int rate = maxFreq == 0
-            ? AudioSettings.outputSampleRate
-            : Mathf.Clamp(AudioSettings.outputSampleRate, minFreq, maxFreq);
-        micClip = Microphone.Start(device, true, clipSeconds, rate);
-        if (micClip == null)
+        // Sem bateria (task #17), o jogador não pode falar.
+        if (BatteryDepleted(player))
         {
-            error = "Falha a iniciar o microfone.";
+            error = $"Sem bateria (P{player}): voice bloqueado.";
+            return;
+        }
+        if (Microphone.devices.Length == 0)
+        {
+            error = "Sem microfone disponível.";
             return;
         }
 
-        talkingPlayer = player; // reserva já o canal
-        transmitRoutine = StartCoroutine(TransmitWhenReady());
+        try
+        {
+            Microphone.GetDeviceCaps(DefaultDevice, out int minRate, out int maxRate);
+            int rate = AudioSettings.outputSampleRate;
+            if (rate <= 0)
+                rate = 48000;
+            if (maxRate > 0)
+                rate = Mathf.Clamp(rate, Mathf.Max(1, minRate), maxRate);
+
+            // Volta a usar o default atual em cada pressão de V/RB/B.
+            micClip = Microphone.Start(DefaultDevice, true, Mathf.Max(1, clipSeconds), rate);
+            if (micClip == null)
+            {
+                error = "Não foi possível iniciar o microfone predefinido.";
+                return;
+            }
+
+            talkingPlayer = player;
+            transmitRoutine = StartCoroutine(TransmitWhenReady());
+        }
+        catch (Exception exception)
+        {
+            StopCapture();
+            error = "Falha no microfone: " + exception.Message;
+        }
     }
 
     private IEnumerator TransmitWhenReady()
     {
-        // Espera o micro arrancar antes de tocar: corta o atraso inicial
-        // e evita tocar buffer vazio.
-        int waits = 0;
-        while (Microphone.GetPosition(device) <= 0 && waits < 60)
+        // Dá tempo ao dispositivo para começar, sem bloquear o jogo.
+        yield return null;
+
+        AudioSettings.GetDSPBufferSize(out int bufferSize, out _);
+        int bufferedSamples = Mathf.Max(Mathf.CeilToInt(micClip.frequency * MonitorLatency), bufferSize * 2);
+        bufferedSamples = Mathf.Clamp(bufferedSamples, 1, micClip.samples - 1);
+        float deadline = Time.realtimeSinceStartup + StartupTimeout;
+        int position = Microphone.GetPosition(DefaultDevice);
+
+        while (position < bufferedSamples)
         {
-            waits++;
+            if (Time.realtimeSinceStartup >= deadline)
+            {
+                transmitRoutine = null;
+                StopCapture();
+                error = "O microfone predefinido não iniciou. Confirma a entrada nas definições de som.";
+                yield break;
+            }
+
             yield return null;
+            position = Microphone.GetPosition(DefaultDevice);
         }
 
-        if (selfMonitor && micClip != null)
+        if (selfMonitor)
         {
             output.clip = micClip;
+            // Lê atrás da escrita, sem reproduzir um segundo de silêncio antigo.
+            output.timeSamples = position - bufferedSamples;
             output.Play();
         }
         transmitRoutine = null;
@@ -274,125 +218,106 @@ public class LocalVoiceChat : MonoBehaviour
 
     private void StopTransmit(int player)
     {
-        if (talkingPlayer != player) return;
+        if (talkingPlayer == player)
+            StopCapture();
+    }
 
-        talkingPlayer = 0;
+    private void StopCapture()
+    {
         if (transmitRoutine != null)
         {
             StopCoroutine(transmitRoutine);
             transmitRoutine = null;
         }
-        output.Stop();
-        output.clip = null;
+        if (output != null)
+        {
+            output.Stop();
+            output.clip = null;
+        }
 
-        if (Microphone.IsRecording(device))
-            Microphone.End(device);
-
-        micClip = null;
+        if (micClip != null)
+        {
+            Microphone.End(DefaultDevice);
+            Destroy(micClip);
+            micClip = null;
+        }
+        talkingPlayer = 0;
+        micLevel = 0f;
     }
 
     private void OnDisable()
     {
-        if (talkingPlayer != 0)
-            StopTransmit(talkingPlayer);
-
-        if (talkActionP1 != null) { talkActionP1.Disable(); talkActionP1.Dispose(); talkActionP1 = null; }
-        if (talkActionP2 != null) { talkActionP2.Disable(); talkActionP2.Dispose(); talkActionP2 = null; }
+        AudioSettings.OnAudioConfigurationChanged -= OnAudioConfigurationChanged;
+        restartPending = false;
+        talkActionP1?.Disable();
+        talkActionP2?.Disable();
+        StopCapture();
     }
 
-    private float MicLevel()
+    private void OnDestroy()
     {
-        if (micClip == null || talkingPlayer == 0) return 0f;
-        float[] data = new float[256];
-        int pos = Microphone.GetPosition(device) - 256;
-        if (pos < 0) return 0f;
-        micClip.GetData(data, pos);
+        talkActionP1?.Dispose();
+        talkActionP2?.Dispose();
+    }
+
+    private void UpdateMicLevel()
+    {
+        if (micClip == null || !Microphone.IsRecording(DefaultDevice))
+        {
+            micLevel = 0f;
+            return;
+        }
+
+        int frames = levelSamples.Length / Mathf.Max(1, micClip.channels);
+        int position = Microphone.GetPosition(DefaultDevice);
+        int offset = (position - frames + micClip.samples) % micClip.samples;
+        if (!micClip.GetData(levelSamples, offset))
+            return;
+
         float sum = 0f;
-        for (int i = 0; i < data.Length; i++) sum += Mathf.Abs(data[i]);
-        return sum / data.Length;
+        foreach (float sample in levelSamples)
+            sum += Mathf.Abs(sample);
+        micLevel = sum / levelSamples.Length;
     }
 
     private void OnGUI()
     {
-        // Modo jogo: só indicador enquanto alguém fala (sem painel de teste).
+        Color oldColor = GUI.color;
         if (!showDebugPanel)
         {
-            if (talkingPlayer == 1 || talkingPlayer == 2)
+            if (talkingPlayer != 0)
             {
                 GUI.color = talkingPlayer == 1 ? Color.green : Color.cyan;
-                GUILayout.BeginArea(new Rect(10, 10, 220, 40), GUI.skin.box);
-                GUILayout.Label(talkingPlayer == 1 ? "● P1 A FALAR" : "● P2 A FALAR");
-                GUILayout.EndArea();
-                GUI.color = Color.white;
+                GUI.Box(new Rect(10, 10, 220, 40), "● P" + talkingPlayer + " A FALAR");
             }
             else if (!string.IsNullOrEmpty(error))
             {
                 GUI.color = Color.red;
-                GUILayout.BeginArea(new Rect(10, 10, 340, 40), GUI.skin.box);
-                GUILayout.Label(error);
-                GUILayout.EndArea();
-                GUI.color = Color.white;
+                GUI.Box(new Rect(10, 10, 440, 60), error);
             }
+            GUI.color = oldColor;
             return;
         }
 
-        string keyP1 = talkActionP1 != null ? talkActionP1.GetBindingDisplayString() : talkBindingP1;
-        string keyP2 = talkActionP2 != null ? talkActionP2.GetBindingDisplayString() : talkBindingP2;
-
-        int w = 340;
-        GUILayout.BeginArea(new Rect(10, 10, w, 220), GUI.skin.box);
-        GUILayout.Label("<b>VOICE LOCAL (protótipo)</b>");
-        GUILayout.Label($"Micro: {(Microphone.devices.Length == 0 ? "nenhum" : (device ?? Microphone.devices[0]))}");
-        GUILayout.Label($"Segura {keyP1} = P1 fala | Segura {keyP2} = P2 fala");
-        GUILayout.Label($"Auto-escuta: {(selfMonitor ? "ON (ouves-te)" : "OFF")}");
-
+        GUILayout.BeginArea(new Rect(10, 10, 440, 230), GUI.skin.box);
+        GUILayout.Label("VOICE LOCAL (protótipo)");
+        GUILayout.Label("Micro: entrada predefinida do sistema");
+        GUILayout.Label("P1: " + talkActionP1.GetBindingDisplayString() + " | P2: " + talkActionP2.GetBindingDisplayString());
+        GUILayout.Label("Auto-escuta: " + (selfMonitor ? "ON" : "OFF"));
+        GUILayout.Label(talkingPlayer == 0 ? "Pronto para falar." : "P" + talkingPlayer + " A TRANSMITIR");
+        GUILayout.Label("Nível: " + new string('|', Mathf.Clamp((int)(micLevel * 200f), 0, 20)));
         if (!string.IsNullOrEmpty(error))
         {
             GUI.color = Color.red;
             GUILayout.Label(error);
-            GUI.color = Color.white;
+            GUI.color = oldColor;
         }
-        else if (talkingPlayer == 1)
-        {
-            GUI.color = Color.green;
-            GUILayout.Label("● P1 A TRANSMITIR... (larga " + keyP1 + ")");
-            GUI.color = Color.white;
-        }
-        else if (talkingPlayer == 2)
-        {
-            GUI.color = Color.cyan;
-            GUILayout.Label("● P2 A TRANSMITIR... (larga " + keyP2 + ")");
-            GUI.color = Color.white;
-        }
-        else
-        {
-            GUILayout.Label("Pronto. Segura V e fala para testar.");
-        }
-
-        // Medidor de nível simples
-        float level = MicLevel();
-        GUILayout.Label("Nível: " + new string('|', Mathf.Clamp((int)(level * 200f), 0, 20)));
-        if (talkingPlayer != 0 && level <= 0.0001f)
-            GUILayout.Label("Nível parado? Tenta outro micro (1-9) e vê Privacidade>Microfone no Windows.");
-
-        // Lista de micros para trocar em direto
-        GUILayout.Label("Micros (1-9 ou T=auto-calibrar falando):");
-        for (int i = 0; i < Microphone.devices.Length; i++)
-            GUILayout.Label((i == deviceIndex || Microphone.devices[i] == device ? "> " : "  ") + (i + 1) + ": " + Microphone.devices[i]);
-        if (calibrateRoutine != null)
-        {
-            GUI.color = Color.yellow;
-            GUILayout.Label("A CALIBRAR: fala! (a testar " + (calibrateDevice ?? "?") + ")");
-            GUI.color = Color.white;
-        }
-
-        // Diagnóstico: diz exatamente onde está a falhar
         if (talkingPlayer != 0)
         {
-            bool rec = Microphone.IsRecording(device);
-            int pos = rec ? Microphone.GetPosition(device) : -1;
-            GUILayout.Label($"Diag: gravar={rec} pos={pos} tocar={output.isPlaying} vol={output.volume:F2}");
+            GUILayout.Label("Gravar: " + Microphone.IsRecording(DefaultDevice) + " | Posição: " + Microphone.GetPosition(DefaultDevice));
+            GUILayout.Label("Reproduzir: " + output.isPlaying + " | Volume: " + output.volume.ToString("F2"));
         }
         GUILayout.EndArea();
+        GUI.color = oldColor;
     }
 }

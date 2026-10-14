@@ -50,10 +50,20 @@ public class GestorLanternas : MonoBehaviour
         }
     }
 
-    // Regra estrita: ao ligar uma, desliga a outra instantaneamente
+    // Regra estrita: ao ligar uma, desliga a outra instantaneamente.
+    // Sem bateria (task #17), o jogador não pode ligar a lanterna.
     public void AtivarLanterna(int numeroJogador)
     {
         if (lanternaP1 == null || lanternaP2 == null) return;
+
+        foreach (Battery battery in FindObjectsByType<Battery>(FindObjectsSortMode.None))
+        {
+            if (battery.PlayerNumber == numeroJogador && battery.IsDepleted)
+            {
+                Debug.Log($"<color=red>[LANTERNA]</color> Player {numeroJogador} sem bateria.");
+                return;
+            }
+        }
 
         if (numeroJogador == 1)
         {
