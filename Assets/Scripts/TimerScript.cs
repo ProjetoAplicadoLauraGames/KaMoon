@@ -1,13 +1,16 @@
+using System.Collections;
 using UnityEngine;
 using TMPro;
 
 public class TimerScript : MonoBehaviour
 {
-    public ExplosaoBomba bombaScript; // Referência ao script da bomba para chamar a função Detonar
     [SerializeField] private TMP_Text timerText1;
     [SerializeField] private TMP_Text timerText2;
     public float startTime = 60f;
     private float currentTime;
+    public GameOverManager gameOver;
+
+    private bool isGameOver = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -26,12 +29,13 @@ public class TimerScript : MonoBehaviour
             timerText1.text = string.Format("{0:00}:{1:00}", minutes, seconds);
             timerText2.text = string.Format("{0:00}:{1:00}", minutes, seconds);
         }
-        else
+        else if (!isGameOver)
         {
-            currentTime = 0;
+            isGameOver = true;
+            currentTime = -1;
             timerText1.text = "00:00";
             timerText2.text = "00:00";
-            bombaScript.Detonar(); // Chama a função Detonar do script da bomba
+            gameOver.GameOver();
         }
 
     }

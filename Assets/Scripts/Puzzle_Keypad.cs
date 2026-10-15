@@ -9,19 +9,19 @@ public class PuzzleKeypad : MonoBehaviour
 {
     [Header("Interface UI")]
     public GameObject painelKeypad;
-    public TMP_Text textoDisplay; // Ou Text se usares o sistema clássico
+    public TMP_Text textoDisplay; // Ou Text se usares o sistema clï¿½ssico
 
-    [Header("Configuração do Código")]
+    [Header("Configuraï¿½ï¿½o do Cï¿½digo")]
     public string codigoCorreto = "4281";
     public int limiteDigitos = 4;
 
-    [Header("Interação")]
+    [Header("Interaï¿½ï¿½o")]
     public float distanciaInteracao = 4f;
     [Tooltip("Arrasta o jogador que vai interagir com este terminal")]
     public Transform jogadorInterativo;
 
-    [Header("Detonação / Feedback")]
-    public ExplosaoBomba scriptExplosao;
+    [Header("Detonaï¿½ï¿½o / Feedback")]
+    public GameOverManager gameOver;
 
     private string entradaAtual = "";
     private bool painelAberto = false;
@@ -89,23 +89,17 @@ public class PuzzleKeypad : MonoBehaviour
         {
             textoDisplay.text = "<color=green>ACESSO OK</color>";
             moduloResolvido = true;
-            Debug.Log("<color=green>[KEYPAD]</color> Código correto! Módulo desativado.");
+            Debug.Log("<color=green>[KEYPAD]</color> Cï¿½digo correto! Mï¿½dulo desativado.");
             Invoke(nameof(FecharKeypad), 1.2f);
         }
         else
         {
             textoDisplay.text = "<color=red>ERRO</color>";
-            Debug.Log("<color=red>[KEYPAD]</color> Código incorreto!");
+            Debug.Log("<color=red>[KEYPAD]</color> Cï¿½digo incorreto!");
 
-            if (scriptExplosao != null)
-            {
-                scriptExplosao.Detonar();
-                FecharKeypad();
-            }
-            else
-            {
-                Invoke(nameof(Limpar), 0.8f);
-            }
+            
+            gameOver.GameOver();
+            FecharKeypad();
         }
     }
 

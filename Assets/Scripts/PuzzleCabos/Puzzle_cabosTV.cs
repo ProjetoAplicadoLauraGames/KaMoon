@@ -14,7 +14,7 @@ public class PuzzleCabosTV : MonoBehaviour
     public Button[] cabos;
 
     [Header("Regras")]
-    [Tooltip("Indice do cabo certo (0=1º cabo, 1=2º cabo, etc.)")]
+    [Tooltip("Indice do cabo certo (0=1ï¿½ cabo, 1=2ï¿½ cabo, etc.)")]
     public int indiceCaboCorreto = 1; // Ex: segundo cabo (Azul)
 
     [Header("Interacao")]
@@ -22,7 +22,7 @@ public class PuzzleCabosTV : MonoBehaviour
     public Transform jogadorP2;
 
     [Header("Detonacao (Opcional)")]
-    public ExplosaoBomba explosaoBomba;
+    public GameOverManager gameOver;
 
     private bool moduloResolvido = false;
 
@@ -83,11 +83,8 @@ public class PuzzleCabosTV : MonoBehaviour
         else
         {
             Debug.Log("<color=red>[PUZZLE]</color> Cabo Errado!");
-            if (explosaoBomba != null)
-            {
-                explosaoBomba.Detonar();
-                FecharPuzzle();
-            }
+            gameOver.GameOver();
+            FecharPuzzle();
         }
     }
 }
