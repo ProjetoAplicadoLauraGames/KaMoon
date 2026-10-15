@@ -3,6 +3,7 @@ using TMPro;
 
 public class TimerScript : MonoBehaviour
 {
+    public ExplosaoBomba bombaScript; // Referência ao script da bomba para chamar a função Detonar
     [SerializeField] private TMP_Text timerText1;
     [SerializeField] private TMP_Text timerText2;
     public float startTime = 60f;
@@ -24,6 +25,13 @@ public class TimerScript : MonoBehaviour
             int seconds = Mathf.FloorToInt(currentTime % 60);
             timerText1.text = string.Format("{0:00}:{1:00}", minutes, seconds);
             timerText2.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+        }
+        else
+        {
+            currentTime = 0;
+            timerText1.text = "00:00";
+            timerText2.text = "00:00";
+            bombaScript.Detonar(); // Chama a função Detonar do script da bomba
         }
 
     }

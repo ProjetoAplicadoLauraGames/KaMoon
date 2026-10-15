@@ -12,6 +12,8 @@ public class ExplosaoBomba : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip somExplosao;
 
+    public GameObject GameOverUI;
+
     void Update()
     {
         // Tecla de teste durante o desenvolvimento (carrega no K para testar o KaBoom)
@@ -25,6 +27,8 @@ public class ExplosaoBomba : MonoBehaviour
     {
         StartCoroutine(RotinaExplosao());
     }
+
+    
 
     private IEnumerator RotinaExplosao()
     {

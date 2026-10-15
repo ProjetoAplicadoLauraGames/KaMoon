@@ -1,11 +1,14 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerInteraction : MonoBehaviour
 {
+    public ExplosaoBomba bombaScript; // Referência ao script da bomba para chamar a função Detonar
     public Transform InteractorSource;
     public float InteractRange;
     public GameObject dot;
+    public GameObject GameOverUI;
     void Update()
     {
         Ray r = new Ray(InteractorSource.position, InteractorSource.forward);
@@ -17,6 +20,9 @@ public class PlayerInteraction : MonoBehaviour
                 if (hit.collider.CompareTag("WrongCable"))
                 {
                     Debug.Log("Wrong cable cut!");
+                    bombaScript.Detonar(); // Chama a função Detonar do script da bomba
+                    StartCoroutine(GameOverRoutine());
+                    
                 }
                 else if (hit.collider.CompareTag("CorrectCable"))
                 {
@@ -29,5 +35,11 @@ public class PlayerInteraction : MonoBehaviour
         {
             dot.gameObject.SetActive(false);
         }
+    }
+
+    private IEnumerator GameOverRoutine()
+    {
+        yield return new WaitForSeconds(3f);
+        GameOverUI.SetActive(true);
     }
 }
