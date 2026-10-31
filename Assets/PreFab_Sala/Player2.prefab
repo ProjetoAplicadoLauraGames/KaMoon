@@ -141,6 +141,7 @@ GameObject:
   - component: {fileID: 6601380823580822637}
   - component: {fileID: 2351381951612858537}
   - component: {fileID: 8647161078544152422}
+  - component: {fileID: 8805433389890041990}
   m_Layer: 0
   m_Name: Player2
   m_TagString: Untagged
@@ -242,6 +243,21 @@ MonoBehaviour:
   preventFallingThrough: 1
   animator: {fileID: 0}
   speedParam: Speed
+--- !u!114 &8805433389890041990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3056530708854420616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d1c3a66db2ca174d92c3da16b01c782, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
+  InteractorSource: {fileID: 1711435010421405322}
+  InteractRange: 5
+  dot: {fileID: 0}
 --- !u!1 &3754347740973743207
 GameObject:
   m_ObjectHideFlags: 0

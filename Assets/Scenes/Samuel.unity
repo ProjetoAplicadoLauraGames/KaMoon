@@ -254,6 +254,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Sala Principal
       objectReference: {fileID: 0}
+    - target: {fileID: 3600049303555453026, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5167014690561457731, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -314,8 +318,14 @@ PrefabInstance:
       propertyPath: painelNota
       value: 
       objectReference: {fileID: 240891153}
+    - target: {fileID: 8418776004219414770, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 8418776004219414770, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
+    - {fileID: 1765087524429113099, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 657a5ef92a4238340abfbf93728732db, type: 3}
