@@ -1,0 +1,21 @@
+using UnityEngine;
+
+[RequireComponent(typeof(CanvasGroup))]
+public class MenuPanelTransition : MonoBehaviour
+{
+    private const float Duration = 0.18f;
+    private CanvasGroup group;
+
+    private void OnEnable()
+    {
+        group = GetComponent<CanvasGroup>();
+        group.alpha = MenuAmbientMotion.ReducedMotion ? 1f : 0f;
+    }
+
+    private void Update()
+    {
+        group.alpha = MenuAmbientMotion.ReducedMotion
+            ? 1f
+            : Mathf.MoveTowards(group.alpha, 1f, Time.unscaledDeltaTime / Duration);
+    }
+}

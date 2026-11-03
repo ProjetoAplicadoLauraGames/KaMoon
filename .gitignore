@@ -38,3 +38,11 @@ sysinfo.txt
 *.dat
 *.data
 *.data.unity3d
+
+# Local OpenCode skills and MCP configuration (machine-specific)
+/.opencode/
+/opencode.json
+/opencode.jsonc
+
+# Planos locais de implementação
+/docs/superpowers/plans/
