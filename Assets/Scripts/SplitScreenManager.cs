@@ -16,10 +16,15 @@ public class SplitScreenManager : MonoBehaviour
     [SerializeField] private string labelP1 = "PLAYER 1";
     [SerializeField] private string labelP2 = "PLAYER 2";
 
+    private bool singleView;
+
     private void Awake()
     {
         ResolveCameras();
-        ApplyLayout();
+        if (GameSession.multiplayer)
+            ApplySingleView();
+        else
+            ApplyLayout();
         FixAudioListeners();
     }
 
@@ -86,6 +91,36 @@ public class SplitScreenManager : MonoBehaviour
         }
     }
 
+    private void ApplySingleView()
+    {
+        // Sozinho em multiplayer: fica apenas a camara da sala escolhida, em ecra inteiro.
+        bool salaDois = GameSession.room == 2;
+        Camera ativa = salaDois ? cameraP2 : cameraP1;
+        if (ativa == null)
+        {
+            Debug.LogWarning("[SplitScreen] Camara da sala escolhida em falta; a manter split-screen.");
+            ApplyLayout();
+            return;
+        }
+
+        GameObject outra = GameObject.Find(salaDois ? "Player" : "Player2");
+        if (outra != null)
+            outra.SetActive(false);
+
+        singleView = true;
+        ativa.enabled = true;
+        ativa.rect = new Rect(0f, 0f, 1f, 1f);
+        if (ativa.GetComponent<AudioListener>() == null)
+            ativa.gameObject.AddComponent<AudioListener>();
+
+        // A vista de P2 nao usa rato; nao deixar o cursor preso pelo P1.
+        if (salaDois)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
     private void FixAudioListeners()
     {
         // Unity dá warning com 2 AudioListeners. Mantém só o do P1.
@@ -114,7 +149,7 @@ public class SplitScreenManager : MonoBehaviour
 
     private void OnGUI()
     {
-        if (!showPlayerLabels)
+        if (!showPlayerLabels || singleView)
             return;
 
         GUIStyle style = new GUIStyle(GUI.skin.label)
