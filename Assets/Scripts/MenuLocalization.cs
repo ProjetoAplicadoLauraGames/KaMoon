@@ -18,7 +18,20 @@ public enum MenuTextKey
     PlayerOneRole,
     PlayerTwoRole,
     MissionStart,
-    ReduceMotion
+    ReduceMotion,
+    ModeTitle,
+    ModeIntro,
+    ModeLocal,
+    ModeOnline,
+    LobbyTitle,
+    LobbyUnavailable,
+    LobbyCreated,
+    LobbyCreate,
+    LobbyJoin,
+    LobbyStart,
+    LobbyRoomTitle,
+    LobbyRoomOne,
+    LobbyRoomTwo
 }
 
 public static class MenuLocalization
@@ -69,6 +82,19 @@ public static class MenuLocalization
             case MenuTextKey.PlayerTwoRole: return portugues ? "P2  /  DESMINAGEM\nInterage com os módulos e executa as instruções." : "P2  /  DEFUSAL\nInteract with the modules and follow instructions.";
             case MenuTextKey.MissionStart: return portugues ? "INICIAR MISSÃO" : "START MISSION";
             case MenuTextKey.ReduceMotion: return portugues ? "Reduzir movimento" : "Reduce motion";
+            case MenuTextKey.ModeTitle: return portugues ? "MODO DE JOGO" : "GAME MODE";
+            case MenuTextKey.ModeIntro: return portugues ? "Escolhe como vais jogar: dois astronautas neste PC, ou multiplayer online (a ligação ainda não está disponível)." : "Choose how you play: two astronauts on this PC, or online multiplayer (connection not available yet).";
+            case MenuTextKey.ModeLocal: return portugues ? "Local (split-screen)" : "Local (split-screen)";
+            case MenuTextKey.ModeOnline: return portugues ? "Multiplayer coop" : "Multiplayer co-op";
+            case MenuTextKey.LobbyTitle: return portugues ? "MULTIPLAYER COOP" : "MULTIPLAYER CO-OP";
+            case MenuTextKey.LobbyUnavailable: return portugues ? "A ligação online ainda não está disponível. Podes criar uma sala local e treinar sozinho." : "Online connection is not available yet. You can create a local room and practise alone.";
+            case MenuTextKey.LobbyCreated: return portugues ? "SALA LOCAL · 1 JOGADOR (TU)" : "LOCAL ROOM · 1 PLAYER (YOU)";
+            case MenuTextKey.LobbyCreate: return portugues ? "Criar sala" : "Create room";
+            case MenuTextKey.LobbyJoin: return portugues ? "Entrar em sala" : "Join room";
+            case MenuTextKey.LobbyStart: return portugues ? "Iniciar" : "Start";
+            case MenuTextKey.LobbyRoomTitle: return portugues ? "ESCOLHE A TUA SALA" : "CHOOSE YOUR ROOM";
+            case MenuTextKey.LobbyRoomOne: return portugues ? "Sala 1 · Pistas" : "Room 1 · Clues";
+            case MenuTextKey.LobbyRoomTwo: return portugues ? "Sala 2 · Desarmar" : "Room 2 · Defuse";
             default: return key.ToString();
         }
     }

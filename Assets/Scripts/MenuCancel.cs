@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class MenuCancel : MonoBehaviour, ICancelHandler
 {
-    [SerializeField] private Button backButton;
+    public Button backButton;
 
     public void OnCancel(BaseEventData eventData)
     {

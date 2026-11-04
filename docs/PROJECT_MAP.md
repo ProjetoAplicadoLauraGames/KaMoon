@@ -2,7 +2,7 @@
 
 > Snapshot de 2026-11-03, investigado pelo GPT-6 Luna e revisto pelo agente principal. Descreve fontes e serialização em disco, incluindo trabalho ainda não commitado. Não constitui certificação de funcionamento em runtime.
 
-> Atualização posterior: StartMenu foi guardada com painel de opções, composição fullscreen e briefing. O fluxo de abertura/fecho foi exercitado por comando em Play Mode; validações visuais, inputs físicos e persistência continuam pendentes. As referências ao painel ausente neste inventário descrevem o snapshot anterior.
+> Atualização posterior: StartMenu foi guardada com painel de opções, composição fullscreen e briefing. Foi acrescentado um painel de modo e um lobby local sem rede: Jogar abre o painel de modo, Local segue para o briefing em split-screen e Multiplayer abre o lobby (Criar sala → escolher Sala 1/Sala 2 → Iniciar → briefing). Em multiplayer a partida mostra apenas a câmara da sala escolhida em ecrã inteiro; Entrar em sala está desativado. O fluxo de abertura/fecho foi exercitado por comando em Play Mode; validações visuais, inputs físicos e persistência continuam pendentes. As referências ao painel ausente neste inventário descrevem o snapshot anterior.
 
 ## Como ler este mapa
 
@@ -62,7 +62,7 @@ Estas diferenças são contexto para tarefas futuras, não autorização para mo
 | `ProjectSettings/ProjectSettings.asset` | Player Settings: produto, companhia, input handling, opções e valores por plataforma. |
 | `ProjectSettings/EditorBuildSettings.asset` | Cenas habilitadas e ordem global de build, além de referências de configuração. Um perfil pode introduzir diferenças; confirmar o ativo. |
 | `ProjectSettings/GraphicsSettings.asset` | Configuração gráfica global e referência ao render pipeline. |
-| `ProjectSettings/QualitySettings.asset` | Presets de qualidade, defaults por plataforma e pipelines associados. O menu lê os nomes/índices destes presets. |
+| `ProjectSettings/QualitySettings.asset` | Presets de qualidade, defaults por plataforma e pipelines associados. O menu de opções já não expõe estes presets. |
 | `ProjectSettings/TagManager.asset` | Tags e layers do projeto; relevantes para Player, WrongCable e CorrectCable usados pelos sistemas de interação. |
 | `ProjectSettings/AudioManager.asset` | Configuração de áudio do Unity; não confundir com preferências de volume guardadas em PlayerPrefs. |
 | `ProjectSettings/TimeManager.asset` | Passos/limites de tempo da simulação; o gameplay também altera `Time.timeScale` em runtime. |
@@ -102,12 +102,12 @@ Todos os caminhos desta secção são relativos a `Assets/Scripts/`. O inventár
 | Ficheiro / tipo | Responsabilidade e implementação |
 | --- | --- |
 | `MainMenu.cs` — `MainMenu` | `OnEnable` liberta o cursor e tenta selecionar `firstSelectedButton`; `Start` repete a seleção para acomodar a inicialização do EventSystem. `ChangeScene()` guarda preferências, repõe `Time.timeScale` e carrega a cena seguinte. `OpenOptions()` mostra `optionsMenuPanel` e desativa o objeto do menu principal. `RestartGame()` recarrega a cena atual. `QuitApplication()` guarda preferências e sai da aplicação; no Editor termina Play Mode. |
-| `OptionsMenu.cs` — `OptionsMenu` | Liga listeners em `Awake` e remove-os em `OnDestroy`; `OnEnable` preenche os controlos sem disparar callbacks e seleciona o dropdown do idioma. Aplica som/qualidade/ecrã guardados antes da primeira cena por `RuntimeInitializeOnLoadMethod`. Deduplica resoluções e inclui o tamanho atual da janela como fallback. `FechaOpcoes()` esconde o painel e reativa o menu principal. Guarda preferências em `OnDisable`. |
+| `OptionsMenu.cs` — `OptionsMenu` | Liga listeners em `Awake` e remove-os em `OnDestroy`; `OnEnable` preenche os controlos sem disparar callbacks e seleciona o dropdown do idioma. Aplica som/ecrã guardados antes da primeira cena por `RuntimeInitializeOnLoadMethod`. Deduplica resoluções e inclui o tamanho atual da janela como fallback. `FechaOpcoes()` esconde o painel, reativa o menu principal e repõe o foco no botão Opções. Guarda preferências em `OnDisable`. |
 | `MenuLocalization.cs` — `MenuTextKey`, `MenuLocalization` | Dez chaves de texto para os menus em Português/Inglês. Guarda `MenuLanguage`, limita o índice e publica `LanguageChanged`. Limpa o evento estático em `SubsystemRegistration`. API: `SetLanguage`, `GetText`, `CurrentLanguage`, `LanguageNames`. Não é tradução automática de todos os textos do jogo. |
 | `MenuLocalizedText.cs` — `MenuLocalizedText` | Exige TextMeshProUGUI; subscreve o evento de idioma em `OnEnable`, cancela em `OnDisable` e atualiza o texto. `SetKey()` define a chave de tradução e atualiza imediatamente. |
 | `Navegaçao_Menus.cs` — `NavegadorMenuComando` | Navegação própria numa lista de botões com índice circular, orientação horizontal/vertical e indicador visual. Confirma invocando `Button.onClick`; cancelar invoca o botão de saída ou desativa o objeto. Lê teclado/gamepad diretamente, independentemente do EventSystem. |
 | `Navegador_keypad.cs` — `NavegadorKeypad` | Navegação própria numa grelha de três colunas, com indicador e botão de saída. Não assumir que partilha o foco do EventSystem. |
-| `Editor/OptionsMenuBuilder.cs` — `OptionsMenuBuilder` | Utilitário de Editor acessível em **Tools → KaMoon → Build Options Menu**. Exige StartMenu ativa, fora de Play Mode, e botões existentes ligados a `ChangeScene`/`QuitApplication`. Cria o painel e botão Options, atribui referências, localização e navegação; agrupa Undo, marca a cena alterada e não a guarda automaticamente. |
+| `Editor/OptionsMenuBuilder.cs` — `OptionsMenuBuilder` | Utilitário de Editor acessível em **Tools → KaMoon → Build Options Menu**. Exige StartMenu ativa, fora de Play Mode, e botões existentes ligados a `OpenMode`/`ChangeScene` e `QuitApplication`. Cria o painel (idioma, som, ecrã inteiro, resolução, voltar), o botão Options e liga o foco de regresso; agrupa Undo, marca a cena alterada e não a guarda automaticamente. |
 
 Dependências principais: `UnityEngine.UI`, TextMeshPro, EventSystem e Input System UI. Os navegadores manuais e o EventSystem não devem processar a mesma confirmação sem avaliação do risco de dupla execução.
 
@@ -199,9 +199,8 @@ Diferenças ficheiro/classe a preservar: `Navegaçao_Menus`/`NavegadorMenuComand
 | `Fullscreen` | Preferência de ecrã inteiro; fallback para o estado atual do ecrã. |
 | `ResolutionWidth`, `ResolutionHeight` | Dimensões guardadas; procura correspondência na lista disponível. |
 | `ResolutionIndex` | Compatibilidade com a versão anterior baseada em índice. |
-| `QualityLevel` | Índice de QualitySettings; limitado aos presets existentes quando aplicado. |
 
-Abrir opções preenche controlos com métodos sem notificação para não tratar o carregamento como interação. A inicialização global restaura definições mesmo sem abrir o painel. As opções não incluem canais separados de música/efeitos; existe volume geral/mute. Os presets de qualidade devem refletir `QualitySettings`, não rótulos inventados.
+Abrir opções preenche controlos com métodos sem notificação para não tratar o carregamento como interação. A inicialização global restaura definições mesmo sem abrir o painel. As opções incluem idioma, volume geral/mute, ecrã inteiro e resolução; qualidade gráfica e reduzir movimento foram retirados a pedido. Uma chave `QualityLevel` antiga pode permanecer no registo do utilizador, mas já não é lida nem aplicada.
 
 ## 6. Integração guardada das cenas de build
 

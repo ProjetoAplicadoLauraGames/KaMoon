@@ -50,6 +50,11 @@ public class Hotbar : MonoBehaviour
     {
         NormalizeItems();
         lanternManager = FindFirstObjectByType<GestorLanternas>();
+
+        // Em multiplayer so existe um jogador nesta sessao: a hotbar e a do dono do ecra.
+        if (GameSession.multiplayer && playerNumber != GameSession.room)
+            return;
+
         BuildUI();
         RefreshUI();
     }
@@ -247,8 +252,14 @@ public class Hotbar : MonoBehaviour
         barObj.transform.SetParent(canvasObj.transform, false);
         RectTransform bar = barObj.AddComponent<RectTransform>();
 
-        // Metade do ecrã correspondente ao jogador (splitscreen vertical).
-        if (playerNumber == 1)
+        // Metade do ecrã correspondente ao jogador (splitscreen vertical);
+        // em multiplayer ha um só ecrã, por isso a barra ocupa a largura toda.
+        if (GameSession.multiplayer)
+        {
+            bar.anchorMin = new Vector2(0f, 0f);
+            bar.anchorMax = new Vector2(1f, 0f);
+        }
+        else if (playerNumber == 1)
         {
             bar.anchorMin = new Vector2(0f, 0f);
             bar.anchorMax = new Vector2(0.5f, 0f);

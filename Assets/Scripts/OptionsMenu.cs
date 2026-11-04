@@ -11,12 +11,10 @@ public class OptionsMenu : MonoBehaviour
     public Slider volumeSlider;
     public TMP_Text volumeValueText;
     public Toggle muteToggle;
-    public Toggle reduceMotionToggle;
 
     [Header("Ecra")]
     public Toggle fullscreenToggle;
     public Dropdown resolutionDropdown;
-    public Dropdown qualityDropdown;
 
     [Header("Volta ao menu principal")]
     public Button backButton;
@@ -29,7 +27,6 @@ public class OptionsMenu : MonoBehaviour
     private const string KeyResolution = "ResolutionIndex";
     private const string KeyWidth = "ResolutionWidth";
     private const string KeyHeight = "ResolutionHeight";
-    private const string KeyQuality = "QualityLevel";
 
     private Resolution[] resolusoesDisponiveis;
 
@@ -38,12 +35,6 @@ public class OptionsMenu : MonoBehaviour
     private static void AplicarDefinicoesGuardadas()
     {
         AplicarSom();
-
-        if (PlayerPrefs.HasKey(KeyQuality) && QualitySettings.names.Length > 0)
-        {
-            int nivel = Mathf.Clamp(PlayerPrefs.GetInt(KeyQuality), 0, QualitySettings.names.Length - 1);
-            QualitySettings.SetQualityLevel(nivel, true);
-        }
 
         if (PlayerPrefs.HasKey(KeyWidth) || PlayerPrefs.HasKey(KeyResolution) || PlayerPrefs.HasKey(KeyFullscreen))
         {
@@ -58,10 +49,8 @@ public class OptionsMenu : MonoBehaviour
         if (languageDropdown != null) languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
         if (volumeSlider != null) volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
         if (muteToggle != null) muteToggle.onValueChanged.AddListener(OnMuteChanged);
-        if (reduceMotionToggle != null) reduceMotionToggle.onValueChanged.AddListener(OnReduceMotionChanged);
         if (fullscreenToggle != null) fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
         if (resolutionDropdown != null) resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
-        if (qualityDropdown != null) qualityDropdown.onValueChanged.AddListener(OnQualityChanged);
         if (backButton != null) backButton.onClick.AddListener(FechaOpcoes);
     }
 
@@ -70,10 +59,8 @@ public class OptionsMenu : MonoBehaviour
         if (languageDropdown != null) languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
         if (volumeSlider != null) volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
         if (muteToggle != null) muteToggle.onValueChanged.RemoveListener(OnMuteChanged);
-        if (reduceMotionToggle != null) reduceMotionToggle.onValueChanged.RemoveListener(OnReduceMotionChanged);
         if (fullscreenToggle != null) fullscreenToggle.onValueChanged.RemoveListener(OnFullscreenChanged);
         if (resolutionDropdown != null) resolutionDropdown.onValueChanged.RemoveListener(OnResolutionChanged);
-        if (qualityDropdown != null) qualityDropdown.onValueChanged.RemoveListener(OnQualityChanged);
         if (backButton != null) backButton.onClick.RemoveListener(FechaOpcoes);
     }
 
@@ -102,8 +89,6 @@ public class OptionsMenu : MonoBehaviour
             volumeSlider.SetValueWithoutNotify(VolumeGuardado());
         if (muteToggle != null)
             muteToggle.SetIsOnWithoutNotify(PlayerPrefs.GetInt(KeyMuted, 0) == 1);
-        if (reduceMotionToggle != null)
-            reduceMotionToggle.SetIsOnWithoutNotify(MenuAmbientMotion.ReducedMotion);
         AtualizarPercentagemVolume();
         AplicarSom();
 
@@ -120,18 +105,6 @@ public class OptionsMenu : MonoBehaviour
 
         if (fullscreenToggle != null)
             fullscreenToggle.SetIsOnWithoutNotify(EcraInteiro());
-
-        if (qualityDropdown != null)
-        {
-            qualityDropdown.ClearOptions();
-            qualityDropdown.AddOptions(new List<string>(QualitySettings.names));
-            qualityDropdown.interactable = QualitySettings.names.Length > 0;
-            if (qualityDropdown.interactable)
-            {
-                int nivel = Mathf.Clamp(QualitySettings.GetQualityLevel(), 0, QualitySettings.names.Length - 1);
-                qualityDropdown.SetValueWithoutNotify(nivel);
-            }
-        }
     }
 
     private static Resolution[] ResolucoesUnicas()
@@ -221,11 +194,6 @@ public class OptionsMenu : MonoBehaviour
         AplicarSom();
     }
 
-    private void OnReduceMotionChanged(bool reduced)
-    {
-        PlayerPrefs.SetInt(MenuAmbientMotion.ReducedMotionKey, reduced ? 1 : 0);
-    }
-
     private void OnFullscreenChanged(bool ativo)
     {
         PlayerPrefs.SetInt(KeyFullscreen, ativo ? 1 : 0);
@@ -248,14 +216,5 @@ public class OptionsMenu : MonoBehaviour
         PlayerPrefs.SetInt(KeyWidth, resolucao.width);
         PlayerPrefs.SetInt(KeyHeight, resolucao.height);
         Screen.SetResolution(resolucao.width, resolucao.height, EcraInteiro());
-    }
-
-    private void OnQualityChanged(int nivel)
-    {
-        if (QualitySettings.names.Length == 0) return;
-
-        nivel = Mathf.Clamp(nivel, 0, QualitySettings.names.Length - 1);
-        QualitySettings.SetQualityLevel(nivel, true);
-        PlayerPrefs.SetInt(KeyQuality, nivel);
     }
 }

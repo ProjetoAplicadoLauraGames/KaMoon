@@ -11,6 +11,8 @@ public class MainMenu : MonoBehaviour
     public Button firstSelectedButton;
     public GameObject briefingPanel;
     public Button briefingFirstButton;
+    public GameObject modePanel;
+    public Button modeFirstButton;
 
     private void OnEnable()
     {
@@ -53,6 +55,20 @@ public class MainMenu : MonoBehaviour
         briefingPanel.SetActive(true);
         if (briefingFirstButton != null && EventSystem.current != null)
             briefingFirstButton.Select();
+    }
+
+    public void OpenMode()
+    {
+        if (modePanel == null)
+        {
+            OpenBriefing();
+            return;
+        }
+
+        gameObject.SetActive(false);
+        modePanel.SetActive(true);
+        if (modeFirstButton != null && EventSystem.current != null)
+            modeFirstButton.Select();
     }
 
     public void CloseBriefing()

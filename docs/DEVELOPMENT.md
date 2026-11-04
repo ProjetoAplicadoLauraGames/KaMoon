@@ -44,7 +44,9 @@ Nunca abrir uma segunda instância Unity em batch mode sobre o mesmo projeto enq
 
 ## 3. Menu principal e opções
 
-Fontes: `Assets/Scripts/MainMenu.cs`, `OptionsMenu.cs`, `MenuLocalization.cs`, `MenuLocalizedText.cs` e `Editor/OptionsMenuBuilder.cs`.
+Fontes: `Assets/Scripts/MainMenu.cs`, `OptionsMenu.cs`, `ModeMenu.cs`, `MenuLocalization.cs`, `MenuLocalizedText.cs`, `Editor/OptionsMenuBuilder.cs` e `Editor/ModeMenuBuilder.cs`.
+
+Fluxo atual: **Jogar** abre o painel de modo; **Local** segue para o briefing em split-screen e **Multiplayer** abre o lobby local. O lobby não tem rede: **Criar sala** cria uma sala local com o jogador atual, mostra `SALA LOCAL · 1 JOGADOR (TU)` e a escolha **Sala 1 · Pistas** / **Sala 2 · Desarmar**; **Iniciar** só fica disponível depois de escolher e segue para o briefing. Na partida, o multiplayer deixa apenas a câmara da sala escolhida em ecrã inteiro e desativa o outro jogador; o local mantém o split-screen. **Entrar em sala** está visível mas desativado. **Voltar** regressa ao painel anterior; reabrir o lobby repõe sempre o estado inicial (Criar e Entrar visíveis, Iniciar e escolha ocultos).
 
 Para gerar/atualizar a UI:
 
@@ -56,21 +58,26 @@ Para gerar/atualizar a UI:
 6. Guardar a cena conscientemente. O builder marca-a como alterada, mas não faz Save automaticamente. Há Undo para a construção.
 7. Testar novamente. Executar o builder não prova que as opções funcionam em Play Mode.
 
+O mesmo procedimento aplica-se ao menu de modo com **Tools → KaMoon → Build Mode Menu**. Este builder cria/substitui `ModePanel` e `LobbyPanel`, acrescenta `ModeMenu` ao Canvas e liga o botão Jogar a `MainMenu.OpenMode`. Alterações manuais dentro desses painéis perdem-se na reconstrução; o builder também não guarda a cena.
+
+`GameSession` guarda `multiplayer`/`room` entre o menu e a partida e repõe-se no arranque do Play Mode. `SplitScreenManager` lê-o em `Awake`: no local mantém as duas câmaras em metades; no multiplayer desativa o jogador da outra sala, põe a câmara escolhida em `Rect(0,0,1,1)` e garante um `AudioListener`. A `Hotbar` só constrói a barra do jogador ativo e, nesse caso, ocupa a largura toda.
+
 **Atualização:** StartMenu foi guardada com painel de opções, briefing e cenário de menu composto por 18 malhas da Sala Principal, sem scripts de gameplay, câmaras ou colliders nessa composição. Foi observada uma captura do menu em Game View a 880×426; o acabamento visual continua por melhorar. Em Play Mode, um comando verificou a abertura e fecho dos painéis e o foco ao regressar às opções. Não foram verificados os inputs físicos, idiomas, persistência, layout nas resoluções alvo ou build standalone. O builder de opções foi criado para o layout anterior; executá-lo novamente requer inspecionar o resultado para não desfazer ligações do menu atual.
 
-O menu usa `Assets/Fonts/KaMoon/Rajdhani-Regular.ttf` e o respetivo asset TMP, com licença em `Assets/Fonts/KaMoon/OFL-Rajdhani.txt`. `MenuAmbientMotion` aplica oscilação discreta à câmara e luz de destaque. O toggle de opções `Reduzir movimento` guarda `MenuReducedMotion` e desativa a oscilação e o fade de entrada dos painéis. A função de onda foi verificada em três valores e o componente observado ativo em Play Mode; a validação da preferência entre sessões, do movimento ao longo do tempo e de conforto ainda está pendente.
+O menu usa `Assets/Fonts/KaMoon/Rajdhani-Regular.ttf` e o respetivo asset TMP, com licença em `Assets/Fonts/KaMoon/OFL-Rajdhani.txt`. `MenuAmbientMotion` aplica oscilação discreta à câmara e luz de destaque, controlada apenas pelo campo `reduceMotion` do Inspector. O antigo toggle de opções `Reduzir movimento` e a preferência `MenuReducedMotion` foram removidos: os painéis voltam a usar sempre o fade de 0,18 s e nenhuma preferência inacessível altera o movimento. A função de onda foi verificada em três valores e o componente observado ativo em Play Mode; a validação do movimento ao longo do tempo e de conforto ainda está pendente.
 
 `MenuCancel` encaminha o cancelamento para Voltar; foi verificado por comando no briefing e no dropdown de idioma fechado. O teste automatizado de dropdown aberto gerou uma exceção em `Dropdown.Show()` quando o tween ainda não estava inicializado; o código uGUI inicializa-o em `Dropdown.Start()`. É necessário repetir em interação física após a inicialização. A consulta final da Console não devolveu erros; não foi limpa.
 
 ### Checklist funcional
 
 - [ ] Menu principal é o painel inicial; opções começam ocultas.
-- [ ] Jogar abre SampleScene a partir de StartMenu e repõe o tempo.
+- [ ] Jogar abre o painel de modo; Local e Iniciar (após Criar sala) abrem o briefing, e só o arranque do briefing abre SampleScene e repõe o tempo.
+- [ ] Multiplayer obriga a escolher Sala 1/Sala 2 antes de Iniciar; a partida mostra só essa câmara em ecrã inteiro e Local mantém o split-screen.
 - [ ] Options/Opções abre só o painel correto; a UI subjacente deixa de receber input.
 - [ ] Voltar fecha opções e repõe foco num controlo válido.
-- [ ] Português/Inglês atualiza todos os textos dos dois menus e mantém acentos legíveis.
+- [ ] Português/Inglês atualiza todos os textos dos painéis e mantém acentos legíveis.
 - [ ] Volume mostra percentagem, altera som real e mute preserva o volume escolhido para unmute.
-- [ ] Qualidade mostra os presets reais; resolução/fullscreen não alteram a janela só por abrir o painel.
+- [ ] Opções não expõem qualidade gráfica nem reduzir movimento; resolução/fullscreen não alteram a janela só por abrir o painel.
 - [ ] Preferências mantêm-se após fechar/reabrir opções e após iniciar uma nova sessão sem abrir opções.
 - [ ] Navegação por rato, teclado e comando funciona sem submissões duplicadas.
 - [ ] Layout, dropdowns e texto continuam legíveis a 16:9, 4:3 e numa janela pequena.

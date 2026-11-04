@@ -9,13 +9,11 @@ public class MenuPanelTransition : MonoBehaviour
     private void OnEnable()
     {
         group = GetComponent<CanvasGroup>();
-        group.alpha = MenuAmbientMotion.ReducedMotion ? 1f : 0f;
+        group.alpha = 0f;
     }
 
     private void Update()
     {
-        group.alpha = MenuAmbientMotion.ReducedMotion
-            ? 1f
-            : Mathf.MoveTowards(group.alpha, 1f, Time.unscaledDeltaTime / Duration);
+        group.alpha = Mathf.MoveTowards(group.alpha, 1f, Time.unscaledDeltaTime / Duration);
     }
 }

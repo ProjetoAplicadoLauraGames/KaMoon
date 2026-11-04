@@ -46,11 +46,12 @@ public static class OptionsMenuBuilder
             return;
         }
 
-        var playButton = EncontrarBotao(mainMenu, "ChangeScene");
+        var playButton = EncontrarBotao(mainMenu, "OpenMode");
+        if (playButton == null) playButton = EncontrarBotao(mainMenu, "ChangeScene");
         var quitButton = EncontrarBotao(mainMenu, "QuitApplication");
         if (playButton == null || quitButton == null)
         {
-            Debug.LogError("Nao foram encontrados os botoes ligados a ChangeScene e QuitApplication.");
+            Debug.LogError("Nao foram encontrados os botoes ligados a OpenMode/ChangeScene e QuitApplication.");
             return;
         }
 
@@ -125,11 +126,7 @@ public static class OptionsMenuBuilder
         CriarLabelLinha(pai, "ResolutionLabel", MenuTextKey.Resolution, -72f);
         var resolucao = CriarDropdown(recursos, pai, "ResolutionDropdown", -72f);
 
-        CriarLabelLinha(pai, "QualityLabel", MenuTextKey.Quality, -132f);
-        var qualidade = CriarDropdown(recursos, pai, "QualityDropdown", -132f);
-        qualidade.AddOptions(new List<string>(QualitySettings.names));
-
-        var voltar = CriarBotao(pai, "BackButton", MenuTextKey.Back, new Vector2(0f, -250f), recursos.standard);
+        var voltar = CriarBotao(pai, "BackButton", MenuTextKey.Back, new Vector2(0f, -192f), recursos.standard);
         voltar.GetComponent<RectTransform>().sizeDelta = new Vector2(240f, 52f);
 
         var options = painel.AddComponent<OptionsMenu>();
@@ -139,13 +136,13 @@ public static class OptionsMenuBuilder
         options.muteToggle = silenciar;
         options.fullscreenToggle = ecraInteiro;
         options.resolutionDropdown = resolucao;
-        options.qualityDropdown = qualidade;
         options.backButton = voltar;
         options.menuPrincipal = mainMenu.gameObject;
-        ConfigurarNavegacao(idioma, volume, silenciar, ecraInteiro, resolucao, qualidade, voltar);
+        ConfigurarNavegacao(idioma, volume, silenciar, ecraInteiro, resolucao, voltar);
 
         var optionsButton = CriarBotao(mainMenu.transform, "OptionsButton", MenuTextKey.Options, Vector2.zero, recursos.standard);
         UnityEventTools.AddVoidPersistentListener(optionsButton.onClick, mainMenu.OpenOptions);
+        options.returnFocusButton = optionsButton;
         ConfigurarBotaoExistente(playButton, MenuTextKey.Play, new Vector2(0f, 96f));
         ConfigurarBotaoExistente(quitButton, MenuTextKey.Quit, new Vector2(0f, -96f));
         ConfigurarNavegacao(playButton, optionsButton, quitButton);
