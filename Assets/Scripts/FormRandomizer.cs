@@ -15,7 +15,6 @@ public class FormRandomizer : MonoBehaviour
         {
             transform.GetChild(i).gameObject.SetActive(i == selectedChild);
         }
-        Debug.Log("Selected child: " + (selectedChild + 1));
         return selectedChild + 1;
     }
 }

@@ -12,15 +12,6 @@ public class ExplosaoBomba : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip somExplosao;
 
-    void Update()
-    {
-        // Tecla de teste durante o desenvolvimento (carrega no K para testar o KaBoom)
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            Detonar();
-        }
-    }
-
     public void Detonar()
     {
         StartCoroutine(RotinaExplosao());

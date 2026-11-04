@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,6 +7,7 @@ public class PlayerInteraction : MonoBehaviour
     public Transform InteractorSource;
     public float InteractRange;
     public GameObject dot;
+    public GameOverManager gameOver;
     void Update()
     {
         Ray r = new Ray(InteractorSource.position, InteractorSource.forward);
@@ -17,6 +19,8 @@ public class PlayerInteraction : MonoBehaviour
                 if (hit.collider.CompareTag("WrongCable"))
                 {
                     Debug.Log("Wrong cable cut!");
+                    gameOver.GameOver();
+                    
                 }
                 else if (hit.collider.CompareTag("CorrectCable"))
                 {

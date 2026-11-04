@@ -12,44 +12,46 @@ public class CableRandomizer : MonoBehaviour
     {
         int cableToCut = -1;
 
+        int form = currentForm.RandomizeForm();
+
         switch (RandomizeCables())
         {
             case 3:
-                switch (currentForm.RandomizeForm())
+                switch (form)
                 {
                     case 1:
                         cableToCut = 2;
                         break;
                     case 2:
-                        cableToCut = 4;
+                        cableToCut = 3;
                         break;
                     case 3:
-                        cableToCut = 2;
+                        cableToCut = 3;
                         break;
                 }
                 break;
             case 4:
-                switch (currentForm.RandomizeForm())
+                switch (form)
                 {
                     case 1:
-                        cableToCut = 3;
+                        cableToCut = 4;
                         break;
                     case 2:
                         cableToCut = 1;
                         break;
                     case 3:
-                        cableToCut = 1;
+                        cableToCut = 2;
                         break;
                 }
                 break;
             case 5:
-                switch (currentForm.RandomizeForm())
+                switch (form)
                 {
                     case 1:
-                        cableToCut = 3;
+                        cableToCut = 2;
                         break;
                     case 2:
-                        cableToCut = 2;
+                        cableToCut = 5;
                         break;
                     case 3:
                         cableToCut = 5;
