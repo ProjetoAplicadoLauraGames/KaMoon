@@ -113,12 +113,6 @@ public class SplitScreenManager : MonoBehaviour
         if (ativa.GetComponent<AudioListener>() == null)
             ativa.gameObject.AddComponent<AudioListener>();
 
-        // A vista de P2 nao usa rato; nao deixar o cursor preso pelo P1.
-        if (salaDois)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
     }
 
     private void FixAudioListeners()

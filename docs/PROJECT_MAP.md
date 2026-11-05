@@ -126,7 +126,9 @@ Dependências principais: `UnityEngine.UI`, TextMeshPro, EventSystem e Input Sys
 | --- | --- |
 | `Hotbar/Hotbar.cs` — `Hotbar` | Inicializa/normaliza slots e cria Canvas uGUI em runtime. Processa seleção/uso por teclado ou comando, conforme flags. API: `PlayerNumber`, `SelectSlot`, `SetItem`, `AddItem`, `HasItem`, `RemoveItem`, `UseSelected`. IDs especiais `flashlight` e `battery` acionam comportamentos próprios. Procura Battery/GestorLanternas na cena. A UI gerada usa `UnityEngine.UI.Text`, não TMP. |
 | `Hotbar/HotbarItem.cs` — `HotbarItem` | ScriptableObject de dados: `displayName`, `icon`, `itemId`. Pode ser criado pelo menu **KaMoon → Hotbar Item**. O item de inventário não é o mesmo objeto que o pickup físico. |
-| `Hotbar/HotbarPickup.cs` — `HotbarPickup` | Requer Collider; `Reset` configura trigger. Localiza a Hotbar a partir do Rigidbody/parent do jogador, valida item/jogador e só destrói/desativa o pickup quando `AddItem` aceita a recolha. |
+| `Hotbar/HotbarPickup.cs` — `HotbarPickup` | Requer Collider; `Reset` configura trigger. A Hotbar do jogador tenta recolher o item visado com E/A; o pickup valida jogador e item e só desaparece quando `AddItem` aceita a recolha. |
+
+Atualização: `Assets/Objects_Prefab/AA battery.prefab` usa `HotbarPickup` e o item `Assets/Hotbar/Battery.asset`; `SampleScene` contém uma bateria perto de cada jogador. Olhar para ela a até 3 m e pressionar E/A ocupa um slot; usá-la recarrega apenas a bateria individual do respetivo jogador a 100%, consumindo o item quando a carga não está cheia. Esta decisão para a tarefa mantém o protótipo individual e diverge da energia central partilhada do GDD.
 | `Hotbar/Battery.cs` — `Battery` | `Awake` define carga inicial 0/1 e encontra gestor/voz; `Update` drena carga conforme lanterna e fala ativas. Defaults de fonte: `lanternSeconds=120`, `voiceSeconds=120`, `startFull=true`, jogador 1. As taxas somam: ambos ativos gastam a carga em cerca de 60 s com esses defaults. Ao esgotar, apaga as luzes do jogador; a voz consulta `IsDepleted` para cortar transmissão. Expõe `Charge`, `IsDepleted`, `PlayerNumber`, `Recharge()`. Recharge repõe carga, mas não religa a luz. `OnGUI` apresenta a barra. |
 | `GestorLanternas.cs` — `GestorLanternas` | Gere `lanternaP1`, `lanternaP2` e `p1ComecaLigado=true`. `Start` ativa uma e desativa outra quando as referências são válidas. F pede a lanterna P1; buttonNorth/Y pede P2. `AtivarLanterna(int)` exige as duas referências, procura Battery e bloqueia jogador sem carga; para 1/2, liga a luz desse jogador e desliga a do outro. É chamado por `Hotbar.UseFlashlight`; a política atual é uma luz ativa de cada vez. |
 
@@ -255,7 +257,7 @@ Principais bindings declarados no asset: Move por leftStick/WASD/setas; Look por
 | --- | --- |
 | Movimento/look | Teclado/rato e sticks diretamente em CapsuleMovement. |
 | Lanternas | F para P1 e buttonNorth/Y para P2 em GestorLanternas. |
-| Hotbar | Teclas de slots 1–8/F ou dpad/Y segundo flags/configuração. |
+| Hotbar | Teclas de slots 1-8 e G para usar; D-pad esquerdo/direito e R3 para usar, segundo flags/configuração. F/Y ficam para a lanterna. |
 | Puzzles/painéis | E/buttonSouth para abrir e Esc/buttonEast para fechar nos scripts correspondentes; verificar diferenças entre componentes. |
 | Voz | V para P1; RB e fallback B para P2 nas InputActions criadas por código. |
 | Menus | EventSystem/InputSystemUIInputModule e, noutros contextos, navegadores manuais que invocam Button.onClick. |

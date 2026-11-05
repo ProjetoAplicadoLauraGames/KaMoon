@@ -6,8 +6,8 @@ using UnityEngine.UI;
 /// Hotbar por jogador (task #21). Não precisa de setup na cena:
 /// constrói a sua barra (UGUI) em runtime, metade esquerda (P1)
 /// ou direita (P2) para funcionar em splitscreen.
-/// P1: teclas 1-4 escolhem slot, F usa. P2: d-pad esq/dir muda,
-/// Y (buttonNorth) usa. Slot 0 é a lanterna por defeito.
+/// P1: teclas 1-4 escolhem slot, G usa. P2: d-pad esq/dir muda,
+/// R3 usa. Slot 0 é a lanterna por defeito.
 /// </summary>
 public class Hotbar : MonoBehaviour
 {
@@ -20,7 +20,7 @@ public class Hotbar : MonoBehaviour
 
     [Header("Input P1 (teclado)")]
     [SerializeField] private bool useKeyboard = true;
-    [SerializeField] private Key useKeyP1 = Key.F;
+    [SerializeField] private Key useKeyP1 = Key.G;
 
     [Header("Input P2 (comando)")]
     [SerializeField] private bool useGamepad = false;
@@ -48,6 +48,11 @@ public class Hotbar : MonoBehaviour
 
     private void Awake()
     {
+        if (GameSession.multiplayer && playerNumber == GameSession.room)
+        {
+            useKeyboard = true;
+        }
+        if (useKeyP1 == Key.F) useKeyP1 = Key.G;
         NormalizeItems();
         lanternManager = FindFirstObjectByType<GestorLanternas>();
 
@@ -97,6 +102,9 @@ public class Hotbar : MonoBehaviour
 
         if (kb[useKeyP1].wasPressedThisFrame)
             UseSelected();
+
+        if (kb.eKey.wasPressedThisFrame)
+            TryPickup();
     }
 
     private void HandleGamepad()
@@ -108,8 +116,27 @@ public class Hotbar : MonoBehaviour
             SelectSlot((SelectedIndex - 1 + slotCount) % slotCount);
         if (pad.dpad.right.wasPressedThisFrame)
             SelectSlot((SelectedIndex + 1) % slotCount);
-        if (pad.buttonNorth.wasPressedThisFrame)
+        if (pad.rightStickButton.wasPressedThisFrame)
             UseSelected();
+        if (pad.buttonSouth.wasPressedThisFrame)
+            TryPickup();
+    }
+
+    private void TryPickup()
+    {
+        Camera camera = GetComponentInChildren<Camera>();
+        if (camera == null || !camera.enabled) return;
+
+        Ray ray = new Ray(camera.transform.position, camera.transform.forward);
+        RaycastHit[] hits = Physics.RaycastAll(ray, 3f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            HotbarPickup pickup = hit.collider.GetComponentInParent<HotbarPickup>();
+            if (pickup != null) pickup.TryPickup(this);
+            if (pickup != null || !hit.collider.isTrigger) break;
+        }
     }
 
     public void SelectSlot(int index)

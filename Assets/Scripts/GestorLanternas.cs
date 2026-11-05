@@ -15,8 +15,9 @@ public class GestorLanternas : MonoBehaviour
         // Garante que apenas uma lanterna comeca ativa no arranque da cena
         if (lanternaP1 != null && lanternaP2 != null)
         {
-            lanternaP1.enabled = p1ComecaLigado;
-            lanternaP2.enabled = !p1ComecaLigado;
+            bool p1Ativo = GameSession.multiplayer ? GameSession.room != 2 : p1ComecaLigado;
+            lanternaP1.enabled = p1Ativo;
+            lanternaP2.enabled = !p1Ativo;
         }
     }
 
@@ -34,7 +35,7 @@ public class GestorLanternas : MonoBehaviour
         // Player 1 carrega no F (ou E) para "puxar" a lanterna para si
         if (Keyboard.current.fKey.wasPressedThisFrame)
         {
-            AtivarLanterna(1);
+            AtivarLanterna(GameSession.multiplayer && GameSession.room == 2 ? 2 : 1);
         }
     }
 

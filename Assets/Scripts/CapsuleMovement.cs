@@ -50,6 +50,11 @@ public class CapsuleMovement : MonoBehaviour
 
     private void Awake()
     {
+        if (GameSession.multiplayer && GameSession.room == 2)
+        {
+            useArrowKeys = false;
+            mouseLook = true;
+        }
         rb = GetComponent<Rigidbody>();
         bodyCollider = GetComponent<Collider>();
 
@@ -73,7 +78,7 @@ public class CapsuleMovement : MonoBehaviour
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
-        if (!useGamepad && mouseLook && lockCursor)
+        if ((!useGamepad || (GameSession.multiplayer && GameSession.room == 2)) && mouseLook && lockCursor)
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
