@@ -1,10 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Item apanhável no mundo (task #21): quando um player com Hotbar
-/// toca neste objeto, o item entra no primeiro slot vazio e este
-/// objeto sai da cena. Não precisa de setup na cena além de um
-/// Collider (fica trigger sozinho) neste mesmo objeto.
+/// Item apanhável no mundo quando o jogador interage com ele.
 /// Uso: prefab do item (ex: lanterna, bateria) + HotbarItem + este script.
 /// </summary>
 [RequireComponent(typeof(Collider))]
@@ -26,13 +23,8 @@ public class HotbarPickup : MonoBehaviour
             col.isTrigger = true;
     }
 
-    private void OnTriggerEnter(Collider other)
+    public void TryPickup(Hotbar hotbar)
     {
-        Hotbar hotbar = null;
-        if (other.attachedRigidbody != null)
-            hotbar = other.attachedRigidbody.GetComponent<Hotbar>();
-        if (hotbar == null)
-            hotbar = other.GetComponentInParent<Hotbar>();
         if (hotbar == null)
             return;
 

@@ -72,8 +72,8 @@ public class LocalVoiceChat : MonoBehaviour
         }
 
         talkActionP1 = new InputAction("TalkP1", InputActionType.Button, talkBindingP1);
-        talkActionP1.performed += _ => StartTransmit(1);
-        talkActionP1.canceled += _ => StopTransmit(1);
+        talkActionP1.performed += _ => StartTransmit(GameSession.multiplayer && GameSession.room == 2 ? 2 : 1);
+        talkActionP1.canceled += _ => StopTransmit(GameSession.multiplayer && GameSession.room == 2 ? 2 : 1);
 
         talkActionP2 = new InputAction("TalkP2", InputActionType.Button);
         talkActionP2.AddBinding(talkBindingP2);
@@ -133,7 +133,9 @@ public class LocalVoiceChat : MonoBehaviour
 
     private bool IsTalkHeld(int player)
     {
-        return player == 1 ? talkActionP1.IsPressed() : talkActionP2.IsPressed();
+        return player == 1 || (GameSession.multiplayer && GameSession.room == 2)
+            ? talkActionP1.IsPressed() || (player == 2 && talkActionP2.IsPressed())
+            : talkActionP2.IsPressed();
     }
 
     private void StartTransmit(int player)
