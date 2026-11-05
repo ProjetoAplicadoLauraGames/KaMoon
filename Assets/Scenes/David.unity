@@ -2069,6 +2069,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53484c04efa5cf43839b9fc91ae079c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenu
+  optionsMenuPanel: {fileID: 0}
+  firstSelectedButton: {fileID: 0}
+  briefingPanel: {fileID: 0}
+  briefingFirstButton: {fileID: 0}
+  modePanel: {fileID: 0}
+  modeFirstButton: {fileID: 0}
 --- !u!114 &1346209095 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8165356396862344166, guid: 10020468605d6c843bfeb202689fb8cb, type: 3}
