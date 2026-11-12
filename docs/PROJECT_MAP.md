@@ -124,7 +124,7 @@ Dependências principais: `UnityEngine.UI`, TextMeshPro, EventSystem e Input Sys
 
 | Ficheiro / tipo | Responsabilidade e implementação |
 | --- | --- |
-| `Hotbar/Hotbar.cs` — `Hotbar` | Inicializa/normaliza slots e cria Canvas uGUI em runtime. Processa seleção/uso por teclado ou comando, conforme flags. API: `PlayerNumber`, `SelectSlot`, `SetItem`, `AddItem`, `HasItem`, `RemoveItem`, `UseSelected`. IDs especiais `flashlight` e `battery` acionam comportamentos próprios. Procura Battery/GestorLanternas na cena. A UI gerada usa `UnityEngine.UI.Text`, não TMP. |
+| `Hotbar/Hotbar.cs` — `Hotbar` | Inicializa/normaliza slots e cria Canvas uGUI em runtime. Processa seleção/uso por teclado ou comando, conforme flags. API: `PlayerNumber`, `SelectSlot`, `SetItem`, `AddItem`, `HasItem`, `RemoveItem`, `UseSelected`. IDs especiais `flashlight` e `battery` acionam comportamentos próprios. Procura Battery/GestorLanternas na cena. A UI gerada usa `UnityEngine.UI.Text`, não TMP. Constrói também o crosshair do jogador (ponto central claro com contorno escuro): duas metades em split-screen local, ecrã inteiro no multiplayer. |
 | `Hotbar/HotbarItem.cs` — `HotbarItem` | ScriptableObject de dados: `displayName`, `icon`, `itemId`. Pode ser criado pelo menu **KaMoon → Hotbar Item**. O item de inventário não é o mesmo objeto que o pickup físico. |
 | `Hotbar/HotbarPickup.cs` — `HotbarPickup` | Requer Collider; `Reset` configura trigger. A Hotbar do jogador tenta recolher o item visado com E/A; o pickup valida jogador e item e só desaparece quando `AddItem` aceita a recolha. |
 
@@ -233,7 +233,7 @@ As contagens são do YAML em disco; não pressupõem a quantidade total de compo
 | PlayerInteraction `265295956` / `Player2` | **Componente desativado**; origem não nula, alcance 5, mesmo Dot; `gameOver` nulo. | Não executa Update enquanto desativado; referências existentes não significam interação de P2 ativa. |
 | Battery `1724678367` / `Player` | Jogador 1, 120 s de lanterna e 120 s de voz, carga inicial cheia; `flashlight` nula. | Pode consultar o gestor de lanternas como fallback; luz nula isoladamente não demonstra falha. |
 | Battery `265295954` / `Player2` | Jogador 2, mesmos tempos/carga; `flashlight` nula. | Há duas Battery, uma por jogador. |
-| Hotbar `1724678368` / `Player` | Jogador 1, quatro slots, teclado ligado, gamepad desligado; **componente desativado**. | Existe configuração de inventário P1, mas o componente não deve ser descrito como ativo. |
+| Hotbar `1724678368` / `Player` | Jogador 1, quatro slots, teclado ligado, gamepad desligado; componente ativo. | Ativo desde a tarefa da hotbar; constrói a barra e o crosshair de P1. |
 | Hotbar `265295955` / `Player2` | Jogador 2, quatro slots, teclado desligado, gamepad ligado; componente ativo. | Há duas Hotbar; ambas têm um item referenciado no slot 0, não inventários vazios por omissão. |
 | GameOverManager `303886131` / `GameOverManager` | Bomba aponta ao componente ExplosaoBomba da instância Sala Principal; GameOverUI aponta a `Panel`. | Referências não nulas, resolvidas por fileID e fonte prefab. `Panel` começa inativo e contém também MainMenu. |
 | SplitScreenManager / instância prefab | `layout=1` (Vertical), cameraP1/P2 nulas no prefab; labels PLAYER 1/PLAYER 2. | `Awake.ResolveCameras()` precisa procurar câmaras por nome; Player/Main Camera e Player2/CameraP2 existem nas fontes dos prefabs. |
