@@ -281,24 +281,19 @@ public class Hotbar : MonoBehaviour
 
         // Metade do ecrã correspondente ao jogador (splitscreen vertical);
         // em multiplayer ha um só ecrã, por isso a barra ocupa a largura toda.
-        if (GameSession.multiplayer)
+        Vector2 anchorMin = new Vector2(0f, 0f);
+        Vector2 anchorMax = new Vector2(1f, 0f);
+        if (!GameSession.multiplayer)
         {
-            bar.anchorMin = new Vector2(0f, 0f);
-            bar.anchorMax = new Vector2(1f, 0f);
+            if (playerNumber == 1) anchorMax.x = 0.5f;
+            else anchorMin.x = 0.5f;
         }
-        else if (playerNumber == 1)
-        {
-            bar.anchorMin = new Vector2(0f, 0f);
-            bar.anchorMax = new Vector2(0.5f, 0f);
-        }
-        else
-        {
-            bar.anchorMin = new Vector2(0.5f, 0f);
-            bar.anchorMax = new Vector2(1f, 0f);
-        }
+        bar.anchorMin = anchorMin;
+        bar.anchorMax = anchorMax;
         bar.pivot = new Vector2(0.5f, 0f);
         bar.anchoredPosition = new Vector2(0f, 16f);
         bar.sizeDelta = new Vector2(slotCount * (slotSize + slotSpacing), slotSize + 16f);
+        BuildCrosshair(canvasObj.transform, anchorMin.x, anchorMax.x);
 
         HorizontalLayoutGroup layout = barObj.AddComponent<HorizontalLayoutGroup>();
         layout.spacing = slotSpacing;
@@ -353,6 +348,69 @@ public class Hotbar : MonoBehaviour
             icon.preserveAspect = true;
             slotIcons[i] = icon;
         }
+    }
+
+    /// <summary>Ponto de mira no centro da vista deste jogador.</summary>
+    private void BuildCrosshair(Transform parent, float minX, float maxX)
+    {
+        GameObject root = new GameObject("Crosshair");
+        root.transform.SetParent(parent, false);
+        RectTransform rect = root.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(minX, 0f);
+        rect.anchorMax = new Vector2(maxX, 1f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        // Contorno escuro para o ponto continuar legível em paredes claras.
+        AddCrosshairDot("Outline", rect, 8f, new Color(0f, 0f, 0f, 0.55f));
+        AddCrosshairDot("Dot", rect, 4f, new Color(1f, 1f, 1f, 0.9f));
+    }
+
+    private static void AddCrosshairDot(string name, Transform parent, float size, Color color)
+    {
+        GameObject obj = new GameObject(name);
+        obj.transform.SetParent(parent, false);
+        RectTransform rect = obj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(size, size);
+
+        Image image = obj.AddComponent<Image>();
+        image.sprite = CrosshairCircle();
+        image.color = color;
+        image.raycastTarget = false;
+    }
+
+    private static Sprite crosshairCircle;
+
+    /// <summary>Círculo branco anti-aliased; sem sprite o Image desenhava um quadrado.</summary>
+    private static Sprite CrosshairCircle()
+    {
+        if (crosshairCircle != null) return crosshairCircle;
+
+        const int size = 32;
+        float radius = (size - 1) * 0.5f;
+        Vector2 center = new Vector2(radius, radius);
+        Color32[] pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), center);
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(radius - d) * 255f));
+            }
+
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            hideFlags = HideFlags.HideAndDontSave,
+            filterMode = FilterMode.Bilinear
+        };
+        texture.SetPixels32(pixels);
+        texture.Apply();
+
+        crosshairCircle = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        crosshairCircle.hideFlags = HideFlags.HideAndDontSave;
+        return crosshairCircle;
     }
 
     private void RefreshUI()
