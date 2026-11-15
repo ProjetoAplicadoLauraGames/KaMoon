@@ -1,135 +1,244 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
-public class PuzzleKeypad : MonoBehaviour
+public class Puzzle_Keypad : MonoBehaviour, IInteragivel
 {
     [Header("Interface UI")]
     public GameObject painelKeypad;
-    public TMP_Text textoDisplay; // Ou Text se usares o sistema cl�ssico
+    public TextMeshProUGUI textoDisplay;
 
-    [Header("Configura��o do C�digo")]
+    [Header("Grelha de 12 Botões (Ordem exata: 1,2,3, 4,5,6, 7,8,9, CLR,0,OK)")]
+    public Button[] botoesGrelha = new Button[12];
+
+    [Header("Configuração do Código")]
     public string codigoCorreto = "4281";
     public int limiteDigitos = 4;
 
-    [Header("Intera��o")]
-    public float distanciaInteracao = 4f;
-    [Tooltip("Arrasta o jogador que vai interagir com este terminal")]
+    [Header("Jogador (Player 2 - Comando)")]
     public Transform jogadorInterativo;
 
-    [Header("Detona��o / Feedback")]
+    [Header("Detonação / Feedback")]
     public GameOverManager gameOver;
 
-    private string entradaAtual = "";
-    private bool painelAberto = false;
-    private bool moduloResolvido = false;
+    private string codigoAtual = "";
+    private bool puzzleResolvido = false;
+    private int indiceBotaoAtual = 0;
+    private float tempoAbertura = 0f;
+
+    private CapsuleMovement playerMovement;
+    private PlayerInteraction playerInteraction;
+
+    // Valores correspondentes aos 12 botões da grelha 3x4
+    private readonly string[] valoresGrelha = new string[]
+    {
+        "1", "2", "3",
+        "4", "5", "6",
+        "7", "8", "9",
+        "CLR", "0", "OK"
+    };
 
     void Start()
     {
+        if (jogadorInterativo == null)
+        {
+            GameObject p2 = GameObject.Find("Player2");
+            if (p2 != null) jogadorInterativo = p2.transform;
+        }
+
+        if (jogadorInterativo != null)
+        {
+            playerMovement = jogadorInterativo.GetComponent<CapsuleMovement>();
+            playerInteraction = jogadorInterativo.GetComponentInChildren<PlayerInteraction>();
+        }
+
+        // Desliga a navegação automática do Unity para não descalibrar a grelha
+        for (int i = 0; i < botoesGrelha.Length; i++)
+        {
+            if (botoesGrelha[i] != null)
+            {
+                Navigation nav = botoesGrelha[i].navigation;
+                nav.mode = Navigation.Mode.None;
+                botoesGrelha[i].navigation = nav;
+            }
+        }
+
         if (painelKeypad != null)
             painelKeypad.SetActive(false);
 
         AtualizarDisplay();
     }
 
+    public void Interagir()
+    {
+        if (puzzleResolvido || painelKeypad == null || painelKeypad.activeSelf) return;
+
+        codigoAtual = "";
+        indiceBotaoAtual = 0;
+        tempoAbertura = Time.time;
+        AtualizarDisplay();
+
+        if (playerMovement != null) playerMovement.enabled = false;
+        if (playerInteraction != null) playerInteraction.emPuzzle = true;
+
+        painelKeypad.SetActive(true);
+        AtualizarDestaqueBotao();
+    }
+
     void Update()
     {
-        if (moduloResolvido || jogadorInterativo == null) return;
+        if (painelKeypad == null || !painelKeypad.activeSelf || puzzleResolvido) return;
 
-        // Se o painel estiver aberto e carregar em B no comando (ou Esc no teclado) -> Fecha
+        // Ignora inputs durante os primeiros 0.15s para o botão A que abriu o painel não clicar logo no "1"
+        if (Time.time - tempoAbertura < 0.15f) return;
+
 #if ENABLE_INPUT_SYSTEM
-        if (painelAberto)
+        bool esquerda = false, direita = false, cima = false, baixo = false;
+        bool confirmar = false, sair = false;
+
+        if (Gamepad.current != null)
         {
-            if ((Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame) ||
-                (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame))
-            {
-                FecharKeypad();
-                return;
-            }
+            esquerda  |= Gamepad.current.dpad.left.wasPressedThisFrame  || Gamepad.current.leftStick.left.wasPressedThisFrame;
+            direita   |= Gamepad.current.dpad.right.wasPressedThisFrame || Gamepad.current.leftStick.right.wasPressedThisFrame;
+            cima      |= Gamepad.current.dpad.up.wasPressedThisFrame    || Gamepad.current.leftStick.up.wasPressedThisFrame;
+            baixo     |= Gamepad.current.dpad.down.wasPressedThisFrame  || Gamepad.current.leftStick.down.wasPressedThisFrame;
+            confirmar |= Gamepad.current.buttonSouth.wasPressedThisFrame; // Botão A
+            sair      |= Gamepad.current.buttonEast.wasPressedThisFrame;  // Botão B
+        }
+
+        if (Keyboard.current != null)
+        {
+            esquerda  |= Keyboard.current.leftArrowKey.wasPressedThisFrame;
+            direita   |= Keyboard.current.rightArrowKey.wasPressedThisFrame;
+            cima      |= Keyboard.current.upArrowKey.wasPressedThisFrame;
+            baixo     |= Keyboard.current.downArrowKey.wasPressedThisFrame;
+            confirmar |= Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame;
+            sair      |= Keyboard.current.escapeKey.wasPressedThisFrame;
+        }
+
+        if (sair)
+        {
+            FecharKeypad();
+            return;
+        }
+
+        // Navegação matemática exata na grelha 3 colunas x 4 linhas
+        int coluna = indiceBotaoAtual % 3;
+        int linha = indiceBotaoAtual / 3;
+
+        if (esquerda && coluna > 0)
+        {
+            indiceBotaoAtual -= 1;
+            AtualizarDestaqueBotao();
+        }
+        else if (direita && coluna < 2)
+        {
+            indiceBotaoAtual += 1;
+            AtualizarDestaqueBotao();
+        }
+        else if (cima && linha > 0)
+        {
+            indiceBotaoAtual -= 3;
+            AtualizarDestaqueBotao();
+        }
+        else if (baixo && linha < 3)
+        {
+            indiceBotaoAtual += 3;
+            AtualizarDestaqueBotao();
+        }
+
+        if (confirmar)
+        {
+            ExecutarBotaoAtual();
         }
 #endif
+    }
 
-        float dist = Vector3.Distance(transform.position, jogadorInterativo.position);
+    private void AtualizarDestaqueBotao()
+    {
+        if (EventSystem.current == null || botoesGrelha.Length == 0) return;
 
-        bool apertouInteragir = false;
-#if ENABLE_INPUT_SYSTEM
-        if (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame) apertouInteragir = true;
-        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) apertouInteragir = true;
-#endif
-
-        if (dist <= distanciaInteracao && apertouInteragir && !painelAberto)
+        if (indiceBotaoAtual >= 0 && indiceBotaoAtual < botoesGrelha.Length && botoesGrelha[indiceBotaoAtual] != null)
         {
-            AbrirKeypad();
+            EventSystem.current.SetSelectedGameObject(null);
+            EventSystem.current.SetSelectedGameObject(botoesGrelha[indiceBotaoAtual].gameObject);
         }
     }
 
-    public void InserirDigito(string digito)
+    private void ExecutarBotaoAtual()
     {
-        if (moduloResolvido) return;
+        if (indiceBotaoAtual < 0 || indiceBotaoAtual >= valoresGrelha.Length) return;
 
-        if (entradaAtual.Length < limiteDigitos)
+        string acao = valoresGrelha[indiceBotaoAtual];
+
+        if (acao == "CLR")
         {
-            entradaAtual += digito;
-            AtualizarDisplay();
+            ApagarUltimoDigito();
         }
-    }
-
-    public void Limpar()
-    {
-        entradaAtual = "";
-        AtualizarDisplay();
-    }
-
-    public void Submeter()
-    {
-        if (entradaAtual == codigoCorreto)
+        else if (acao == "OK")
         {
-            textoDisplay.text = "<color=green>ACESSO OK</color>";
-            moduloResolvido = true;
-            Debug.Log("<color=green>[KEYPAD]</color> C�digo correto! M�dulo desativado.");
-            Invoke(nameof(FecharKeypad), 1.2f);
+            VerificarCodigo();
         }
         else
         {
-            textoDisplay.text = "<color=red>ERRO</color>";
-            Debug.Log("<color=red>[KEYPAD]</color> C�digo incorreto!");
+            AdicionarDigito(acao);
+        }
+    }
 
-            
-            gameOver.GameOver();
-            FecharKeypad();
+    public void AdicionarDigito(string digito)
+    {
+        if (puzzleResolvido || codigoAtual.Length >= limiteDigitos) return;
+
+        codigoAtual += digito;
+        AtualizarDisplay();
+    }
+
+    public void ApagarUltimoDigito()
+    {
+        if (puzzleResolvido) return;
+
+        codigoAtual = "";
+        AtualizarDisplay();
+    }
+
+    public void VerificarCodigo()
+    {
+        if (puzzleResolvido) return;
+
+        if (codigoAtual == codigoCorreto)
+        {
+            puzzleResolvido = true;
+            if (textoDisplay != null) textoDisplay.text = "OK!";
+            Debug.Log("<color=green>Código do Keypad correto!</color>");
+            Invoke(nameof(FecharKeypad), 1f);
+        }
+        else
+        {
+            Debug.Log("<color=red>Código errado!</color>");
+            codigoAtual = "";
+            AtualizarDisplay();
+            if (gameOver != null) gameOver.GameOver();
         }
     }
 
     private void AtualizarDisplay()
     {
         if (textoDisplay != null)
-        {
-            if (string.IsNullOrEmpty(entradaAtual))
-                textoDisplay.text = "_ _ _ _";
-            else
-                textoDisplay.text = entradaAtual;
-        }
-    }
-
-    public void AbrirKeypad()
-    {
-        painelAberto = true;
-        painelKeypad.SetActive(true);
-        Limpar();
+            textoDisplay.text = codigoAtual;
     }
 
     public void FecharKeypad()
     {
-        painelAberto = false;
-        painelKeypad.SetActive(false);
-    }
+        if (painelKeypad != null) painelKeypad.SetActive(false);
 
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, distanciaInteracao);
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+
+        if (playerMovement != null) playerMovement.enabled = true;
+        if (playerInteraction != null) playerInteraction.emPuzzle = false;
     }
-}   
+}
