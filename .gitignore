@@ -46,3 +46,9 @@ sysinfo.txt
 
 # Planos locais de implementação
 /docs/superpowers/plans/
+# Ferramentas MCP locais do KaMoon (uso pessoal)
+/Assets/Scripts/Editor/LocalMcpTools/
+/Assets/Scripts/Editor/LocalMcpTools.meta
+
+# Cache/local state from FreeBuff
+/.freebuff/

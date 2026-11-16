@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 public class SplitScreenManager : MonoBehaviour
@@ -17,6 +18,7 @@ public class SplitScreenManager : MonoBehaviour
     [SerializeField] private string labelP2 = "PLAYER 2";
 
     private bool singleView;
+    private Camera cameraAtiva;
 
     private void Awake()
     {
@@ -105,14 +107,48 @@ public class SplitScreenManager : MonoBehaviour
 
         GameObject outra = GameObject.Find(salaDois ? "Player" : "Player2");
         if (outra != null)
-            outra.SetActive(false);
+        {
+            // Decidir pelo modo de jogo, não pelo estado momentâneo do Mirror: isto corre
+            // no arranque da cena, antes de NetworkClient.active, e o avatar remoto era
+            // desativado (o cliente da sala 2 deixava de ver o personagem do anfitrião).
+            if (GameSession.multiplayer)
+            {
+                outra.SetActive(true);
+                NeutralizarRemoto(outra);
+            }
+            else
+            {
+                outra.SetActive(false);
+            }
+        }
 
         singleView = true;
+        cameraAtiva = ativa;
         ativa.enabled = true;
         ativa.rect = new Rect(0f, 0f, 1f, 1f);
         if (ativa.GetComponent<AudioListener>() == null)
             ativa.gameObject.AddComponent<AudioListener>();
 
+    }
+
+    /// <summary>
+    /// Em rede o outro jogador esta noutra maquina: o avatar tem de continuar visivel
+    /// (para se ver pelo vidro), mas sem camara, som, movimento nem interacao locais.
+    /// </summary>
+    private static void NeutralizarRemoto(GameObject outro)
+    {
+        // O avatar remoto e movido pela pose recebida (NetMatch), nao pela fisica local.
+        Rigidbody corpo = outro.GetComponent<Rigidbody>();
+        if (corpo != null) corpo.isKinematic = true;
+
+        foreach (Camera camara in outro.GetComponentsInChildren<Camera>(true))
+            camara.enabled = false;
+        foreach (AudioListener ouvido in outro.GetComponentsInChildren<AudioListener>(true))
+            ouvido.enabled = false;
+        foreach (CapsuleMovement movimento in outro.GetComponentsInChildren<CapsuleMovement>(true))
+            movimento.enabled = false;
+        foreach (PlayerInteraction interacao in outro.GetComponentsInChildren<PlayerInteraction>(true))
+            interacao.enabled = false;
     }
 
     private void FixAudioListeners()
@@ -123,7 +159,9 @@ public class SplitScreenManager : MonoBehaviour
             return;
 
         AudioListener keep = null;
-        if (cameraP1 != null)
+        if (singleView && cameraAtiva != null)
+            keep = cameraAtiva.GetComponentInChildren<AudioListener>();
+        if (keep == null && cameraP1 != null)
             keep = cameraP1.GetComponentInChildren<AudioListener>();
         if (keep == null)
             keep = listeners[0];

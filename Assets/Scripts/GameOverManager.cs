@@ -6,8 +6,15 @@ public class GameOverManager : MonoBehaviour
     public ExplosaoBomba Bomba;
     public GameObject GameOverUI;
 
+    private bool terminado;
+
     public void GameOver()
     {
+        // Varios sistemas podem pedir o fim da partida (timer, keypad, cabos, rede):
+        // so o primeiro dispara a explosao e a UI.
+        if (terminado) return;
+        terminado = true;
+
         Bomba.Detonar();
         StartCoroutine(GameOverRoutine());
     }

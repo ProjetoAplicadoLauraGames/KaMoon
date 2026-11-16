@@ -58,15 +58,18 @@ public class LeitorPistaArmario : MonoBehaviour
 
     public void AbrirNota()
     {
+        PauseMenu.NotificarModal(true);
         notaAberta = true;
         if (painelNota != null)
             painelNota.SetActive(true);
 
-        Debug.Log("<color=cyan>[ARMÁRIO]</color> Player 1 abriu a nota com a pista!");
+        Debug.Log("<color=cyan>[ARMï¿½RIO]</color> Player 1 abriu a nota com a pista!");
     }
 
     public void FecharNota()
     {
+        if (!notaAberta) return;
+        PauseMenu.NotificarModal(false);
         notaAberta = false;
         if (painelNota != null)
             painelNota.SetActive(false);

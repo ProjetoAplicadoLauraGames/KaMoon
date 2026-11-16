@@ -134,7 +134,13 @@ public class Hotbar : MonoBehaviour
         {
             if (hit.collider.transform.IsChildOf(transform)) continue;
             HotbarPickup pickup = hit.collider.GetComponentInParent<HotbarPickup>();
-            if (pickup != null) pickup.TryPickup(this);
+            if (pickup != null)
+            {
+                // Em rede o objeto tem de desaparecer em todos os clientes.
+                string nomeItem = pickup.gameObject.name;
+                if (pickup.TryPickup(this) && NetMatch.EmPartida)
+                    NetMatch.PedirItem(nomeItem);
+            }
             if (pickup != null || !hit.collider.isTrigger) break;
         }
     }
@@ -219,6 +225,19 @@ public class Hotbar : MonoBehaviour
     /// <summary>Usar bateria: recarrega e consome o item (task #17).</summary>
     private void UseBattery(HotbarItem item)
     {
+        // Em rede a carga e do servidor: a recarga tem de passar por la.
+        if (NetMatch.EmPartida)
+        {
+            if (FindPlayerBattery() == null)
+            {
+                Debug.LogWarning($"[Hotbar P{playerNumber}] Sem componente Battery no player.");
+                return;
+            }
+            NetMatch.PedirReabastecimento();
+            RemoveItem(item.itemId);
+            return;
+        }
+
         Battery battery = FindPlayerBattery();
         if (battery == null)
         {
@@ -246,6 +265,13 @@ public class Hotbar : MonoBehaviour
 
     private void UseFlashlight(HotbarItem item)
     {
+        // Em rede o pedido de lanterna vai para o servidor.
+        if (NetMatch.EmPartida)
+        {
+            NetMatch.PedirLanterna();
+            return;
+        }
+
         // Integração com o sistema existente (Samuel): a lanterna é exclusiva,
         // por isso delega no gestor quando ele existir na cena.
         if (lanternManager == null)

@@ -86,11 +86,20 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         if (playerInteraction != null) playerInteraction.emPuzzle = true;
 
         painelKeypad.SetActive(true);
+        PauseMenu.NotificarModal(true);
         AtualizarDestaqueBotao();
     }
 
     void Update()
     {
+        if (NetMatch.EmPartida && NetMatch.KeypadResolvido)
+        {
+            puzzleResolvido = true;
+            if (textoDisplay != null) textoDisplay.text = "OK!";
+            FecharKeypad();
+            return;
+        }
+
         if (painelKeypad == null || !painelKeypad.activeSelf || puzzleResolvido) return;
 
         // Ignora inputs durante os primeiros 0.15s para o botão A que abriu o painel não clicar logo no "1"
@@ -197,6 +206,8 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         AtualizarDisplay();
     }
 
+    public void InserirDigito(string digito) => AdicionarDigito(digito);
+
     public void ApagarUltimoDigito()
     {
         if (puzzleResolvido) return;
@@ -205,9 +216,17 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         AtualizarDisplay();
     }
 
+    public void Limpar() => ApagarUltimoDigito();
+
     public void VerificarCodigo()
     {
         if (puzzleResolvido) return;
+
+        if (NetMatch.EmPartida)
+        {
+            NetMatch.PedirKeypad(codigoAtual);
+            return;
+        }
 
         if (codigoAtual == codigoCorreto)
         {
@@ -225,6 +244,10 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         }
     }
 
+    public void Submeter() => VerificarCodigo();
+
+    public void AbrirKeypad() => Interagir();
+
     private void AtualizarDisplay()
     {
         if (textoDisplay != null)
@@ -234,6 +257,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     public void FecharKeypad()
     {
         if (painelKeypad != null) painelKeypad.SetActive(false);
+        PauseMenu.NotificarModal(false);
 
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(null);
@@ -241,4 +265,9 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         if (playerMovement != null) playerMovement.enabled = true;
         if (playerInteraction != null) playerInteraction.emPuzzle = false;
     }
+}
+
+// Compatibility for scenes and prefabs created before the keypad was renamed.
+public class PuzzleKeypad : Puzzle_Keypad
+{
 }

@@ -48,6 +48,18 @@ public class CapsuleMovement : MonoBehaviour
     private Camera playerCamera;
     private float pitch = 0f;
 
+    public float MouseSensitivity
+    {
+        get => mouseSensitivity;
+        set => mouseSensitivity = value;
+    }
+
+    public float GamepadSensitivity
+    {
+        get => gamepadSensitivity;
+        set => gamepadSensitivity = value;
+    }
+
     private void Awake()
     {
         if (GameSession.multiplayer && GameSession.room == 2)
@@ -55,6 +67,10 @@ public class CapsuleMovement : MonoBehaviour
             useArrowKeys = false;
             mouseLook = true;
         }
+
+        mouseSensitivity = PlayerPrefs.GetFloat("MouseSensitivity", mouseSensitivity);
+        gamepadSensitivity = PlayerPrefs.GetFloat("GamepadSensitivity", gamepadSensitivity);
+
         rb = GetComponent<Rigidbody>();
         bodyCollider = GetComponent<Collider>();
 
@@ -78,6 +94,11 @@ public class CapsuleMovement : MonoBehaviour
         if (animator == null)
             animator = GetComponentInChildren<Animator>();
 
+        AplicarCursor();
+    }
+
+    public void AplicarCursor()
+    {
         if ((!useGamepad || (GameSession.multiplayer && GameSession.room == 2)) && mouseLook && lockCursor)
         {
             Cursor.lockState = CursorLockMode.Locked;

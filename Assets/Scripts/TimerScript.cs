@@ -13,6 +13,16 @@ public class TimerScript : MonoBehaviour
     private bool isGameOver = false;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private void MostrarTempo(float restante)
+    {
+        float seguro = Mathf.Max(0f, restante);
+        int minutos = Mathf.FloorToInt(seguro / 60f);
+        int segundos = Mathf.FloorToInt(seguro % 60f);
+        string texto = string.Format("{0:00}:{1:00}", minutos, segundos);
+        if (timerText1 != null) timerText1.text = texto;
+        if (timerText2 != null) timerText2.text = texto;
+    }
+
     void Start()
     {
         currentTime = startTime;
@@ -21,6 +31,13 @@ public class TimerScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Em rede o relogio e do servidor (NetMatch); aqui so se mostra o valor.
+        if (NetMatch.EmPartida)
+        {
+            MostrarTempo(NetMatch.TempoRestante);
+            return;
+        }
+
         if (currentTime > 0)
         {
             currentTime -= Time.deltaTime;

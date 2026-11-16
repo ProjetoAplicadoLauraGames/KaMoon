@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 
 public class PuzzleEstante3D : MonoBehaviour
 {
-    [Header("Estrutura da UI / Câmara")]
+    [Header("Estrutura da UI / Cï¿½mara")]
     public GameObject painelEstanteUI;
     public Camera cameraEstante;
 
@@ -19,12 +19,12 @@ public class PuzzleEstante3D : MonoBehaviour
     public float rotacaoPuxarX = 12f;
     public float duracaoMovimento = 0.35f;
 
-    [Header("Cursor de Seleção (Substituto da Luz)")]
+    [Header("Cursor de Seleï¿½ï¿½o (Substituto da Luz)")]
     [Tooltip("Arrasta aqui o objeto Moldura_Selecao")]
     public GameObject cursorSelecao;
     public Vector3 offsetCursor = new Vector3(0f, -0.15f, 0.05f);
 
-    [Header("Áudio")]
+    [Header("ï¿½udio")]
     public AudioSource audioSource;
     public AudioClip somClique;
     public AudioClip somErro;
@@ -61,7 +61,7 @@ public class PuzzleEstante3D : MonoBehaviour
 
     void Update()
     {
-        // Se o puzzle não estiver ativo no ecrã, ignora COMPLETAMENTE os inputs
+        // Se o puzzle nï¿½o estiver ativo no ecrï¿½, ignora COMPLETAMENTE os inputs
         if (!puzzleAtivo || aAnimar) return;
 
         bool esquerda = false;
@@ -72,14 +72,14 @@ public class PuzzleEstante3D : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
         if (Gamepad.current != null)
         {
-            // D-Pad ou analógico esquerdo do Player 2
+            // D-Pad ou analï¿½gico esquerdo do Player 2
             esquerda |= Gamepad.current.dpad.left.wasPressedThisFrame || Gamepad.current.leftStick.left.wasPressedThisFrame;
             direita  |= Gamepad.current.dpad.right.wasPressedThisFrame || Gamepad.current.leftStick.right.wasPressedThisFrame;
-            confirmar |= Gamepad.current.buttonSouth.wasPressedThisFrame; // Botão A
-            cancelar  |= Gamepad.current.buttonEast.wasPressedThisFrame;  // Botão B
+            confirmar |= Gamepad.current.buttonSouth.wasPressedThisFrame; // Botï¿½o A
+            cancelar  |= Gamepad.current.buttonEast.wasPressedThisFrame;  // Botï¿½o B
         }
 
-        // Teclado apenas como fallback secundário (Setas do teclado, NÃO usa A/D para não colidir com P1)
+        // Teclado apenas como fallback secundï¿½rio (Setas do teclado, Nï¿½O usa A/D para nï¿½o colidir com P1)
         if (Keyboard.current != null)
         {
             esquerda |= Keyboard.current.leftArrowKey.wasPressedThisFrame;
@@ -124,7 +124,7 @@ public class PuzzleEstante3D : MonoBehaviour
 
         cursorSelecao.transform.SetParent(livroAlvo);
 
-        // Desce a altura em Y e puxa ligeiramente para trás em Z para alinhar com o topo do livro
+        // Desce a altura em Y e puxa ligeiramente para trï¿½s em Z para alinhar com o topo do livro
         cursorSelecao.transform.localPosition = new Vector3(0f, 0.19f, 0.01f);
         cursorSelecao.transform.localRotation = Quaternion.identity;
 
@@ -145,7 +145,7 @@ public class PuzzleEstante3D : MonoBehaviour
         Vector3 posDest = posOrig + deslocamentoPuxar;
         Quaternion rotDest = rotOrig * Quaternion.Euler(rotacaoPuxarX, 0f, 0f);
 
-        // Animação a puxar para fora
+        // Animaï¿½ï¿½o a puxar para fora
         float t = 0f;
         while (t < duracaoMovimento)
         {
@@ -170,7 +170,7 @@ public class PuzzleEstante3D : MonoBehaviour
 
             yield return new WaitForSeconds(1.0f);
 
-            // Retorna suavemente o livro para não ficar permanentemente torto
+            // Retorna suavemente o livro para nï¿½o ficar permanentemente torto
             t = 0f;
             while (t < duracaoMovimento)
             {
@@ -190,7 +190,7 @@ public class PuzzleEstante3D : MonoBehaviour
             if (audioSource != null && somErro != null)
                 audioSource.PlayOneShot(somErro);
 
-            // Devolve o livro errado ao sítio
+            // Devolve o livro errado ao sï¿½tio
             t = 0f;
             while (t < duracaoMovimento)
             {
@@ -209,6 +209,7 @@ public class PuzzleEstante3D : MonoBehaviour
 
     public void AbrirPuzzle()
     {
+        PauseMenu.NotificarModal(true);
         puzzleAtivo = true;
         indiceAtual = 0;
 
@@ -223,6 +224,8 @@ public class PuzzleEstante3D : MonoBehaviour
 
     public void FecharPuzzle()
     {
+        if (!puzzleAtivo) return;
+        PauseMenu.NotificarModal(false);
         puzzleAtivo = false;
 
         if (cursorSelecao != null)
