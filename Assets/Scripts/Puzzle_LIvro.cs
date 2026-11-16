@@ -7,26 +7,22 @@ using UnityEngine.InputSystem;
 public class PuzzleEstante3D : MonoBehaviour
 {
     [Header("Estrutura da UI / Câmara")]
-    [Tooltip("Painel do Canvas com a Raw Image")]
     public GameObject painelEstanteUI;
-    [Tooltip("Câmara que filma a estante (pode ser ativada só durante o puzzle)")]
     public Camera cameraEstante;
 
     [Header("Objetos 3D dos Livros")]
-    [Tooltip("Arrasta os livros da prateleira de baixo por ordem (da esquerda para a direita)")]
     public Transform[] livrosPrateleiraBaixo;
-    [Tooltip("Índice do livro alavanca (o azul, ex.: 4 se for o 5º livro)")]
     public int indiceLivroCorreto = 4;
 
     [Header("Movimento da Alavanca")]
-    [Tooltip("Inclinação no eixo X ou avanço local para puxar o livro")]
-    public Vector3 deslocamentoPuxar = new Vector3(0f, -0.05f, 0.12f);
-    public float rotacaoPuxarX = 15f;
+    public Vector3 deslocamentoPuxar = new Vector3(0f, -0.04f, 0.10f);
+    public float rotacaoPuxarX = 12f;
     public float duracaoMovimento = 0.35f;
 
-    [Header("Indicador Visual de Seleção")]
-    [Tooltip("Luz pontual (Spotlight/Point Light) ou objeto que ilumina o livro selecionado")]
-    public Light luzSelecao;
+    [Header("Cursor de Seleção (Substituto da Luz)")]
+    [Tooltip("Arrasta aqui o objeto Moldura_Selecao")]
+    public GameObject cursorSelecao;
+    public Vector3 offsetCursor = new Vector3(0f, -0.15f, 0.05f);
 
     [Header("Áudio")]
     public AudioSource audioSource;
@@ -34,10 +30,10 @@ public class PuzzleEstante3D : MonoBehaviour
     public AudioClip somErro;
 
     private int indiceAtual = 0;
+    private bool puzzleAtivo = false;
     private bool resolvido = false;
     private bool aAnimar = false;
 
-    // Guarda as poses originais dos livros
     private Vector3[] posicoesIniciais;
     private Quaternion[] rotacoesIniciais;
 
@@ -57,17 +53,16 @@ public class PuzzleEstante3D : MonoBehaviour
                 }
             }
         }
-    }
 
-    void OnEnable()
-    {
-        indiceAtual = 0;
-        AtualizarDestaque();
+        if (cursorSelecao != null) cursorSelecao.SetActive(false);
+        if (cameraEstante != null) cameraEstante.enabled = false;
+        if (painelEstanteUI != null) painelEstanteUI.SetActive(false);
     }
 
     void Update()
     {
-        if (resolvido || aAnimar) return;
+        // Se o puzzle não estiver ativo no ecrã, ignora COMPLETAMENTE os inputs
+        if (!puzzleAtivo || aAnimar) return;
 
         bool esquerda = false;
         bool direita = false;
@@ -77,17 +72,19 @@ public class PuzzleEstante3D : MonoBehaviour
 #if ENABLE_INPUT_SYSTEM
         if (Gamepad.current != null)
         {
+            // D-Pad ou analógico esquerdo do Player 2
             esquerda |= Gamepad.current.dpad.left.wasPressedThisFrame || Gamepad.current.leftStick.left.wasPressedThisFrame;
             direita  |= Gamepad.current.dpad.right.wasPressedThisFrame || Gamepad.current.leftStick.right.wasPressedThisFrame;
             confirmar |= Gamepad.current.buttonSouth.wasPressedThisFrame; // Botão A
             cancelar  |= Gamepad.current.buttonEast.wasPressedThisFrame;  // Botão B
         }
 
+        // Teclado apenas como fallback secundário (Setas do teclado, NÃO usa A/D para não colidir com P1)
         if (Keyboard.current != null)
         {
-            esquerda |= Keyboard.current.aKey.wasPressedThisFrame || Keyboard.current.leftArrowKey.wasPressedThisFrame;
-            direita  |= Keyboard.current.dKey.wasPressedThisFrame || Keyboard.current.rightArrowKey.wasPressedThisFrame;
-            confirmar |= Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame;
+            esquerda |= Keyboard.current.leftArrowKey.wasPressedThisFrame;
+            direita  |= Keyboard.current.rightArrowKey.wasPressedThisFrame;
+            confirmar |= Keyboard.current.enterKey.wasPressedThisFrame;
             cancelar  |= Keyboard.current.escapeKey.wasPressedThisFrame;
         }
 #endif
@@ -113,18 +110,28 @@ public class PuzzleEstante3D : MonoBehaviour
         if (novo >= 0 && novo < livrosPrateleiraBaixo.Length)
         {
             indiceAtual = novo;
-            AtualizarDestaque();
+            AtualizarPosicaoCursor();
         }
     }
 
-    private void AtualizarDestaque()
+    private void AtualizarPosicaoCursor()
     {
-        if (luzSelecao != null && livrosPrateleiraBaixo.Length > 0 && livrosPrateleiraBaixo[indiceAtual] != null)
-        {
-            luzSelecao.gameObject.SetActive(true);
-            // Posiciona a luz logo à frente do livro selecionado
-            luzSelecao.transform.position = livrosPrateleiraBaixo[indiceAtual].position + Vector3.up * 0.1f + livrosPrateleiraBaixo[indiceAtual].forward * 0.15f;
-        }
+        if (livrosPrateleiraBaixo == null || livrosPrateleiraBaixo.Length == 0) return;
+        if (cursorSelecao == null) return;
+
+        Transform livroAlvo = livrosPrateleiraBaixo[indiceAtual];
+        if (livroAlvo == null) return;
+
+        cursorSelecao.transform.SetParent(livroAlvo);
+
+        // Desce a altura em Y e puxa ligeiramente para trás em Z para alinhar com o topo do livro
+        cursorSelecao.transform.localPosition = new Vector3(0f, 0.19f, 0.01f);
+        cursorSelecao.transform.localRotation = Quaternion.identity;
+
+        // X reduzido (largura exata da lombada), Y reduzido (topo do livro), Z alinhado
+        cursorSelecao.transform.localScale = new Vector3(0.155f, 0.44f, 0.39f);
+
+        cursorSelecao.SetActive(true);
     }
 
     private IEnumerator AcionarLivroAnimacao(int indice)
@@ -138,14 +145,14 @@ public class PuzzleEstante3D : MonoBehaviour
         Vector3 posDest = posOrig + deslocamentoPuxar;
         Quaternion rotDest = rotOrig * Quaternion.Euler(rotacaoPuxarX, 0f, 0f);
 
-        // Movimento de puxar para fora / baixo
+        // Animação a puxar para fora
         float t = 0f;
         while (t < duracaoMovimento)
         {
             t += Time.deltaTime;
-            float progresso = t / duracaoMovimento;
-            livro.localPosition = Vector3.Lerp(posOrig, posDest, progresso);
-            livro.localRotation = Quaternion.Lerp(rotOrig, rotDest, progresso);
+            float p = t / duracaoMovimento;
+            livro.localPosition = Vector3.Lerp(posOrig, posDest, p);
+            livro.localRotation = Quaternion.Lerp(rotOrig, rotDest, p);
             yield return null;
         }
         livro.localPosition = posDest;
@@ -154,15 +161,28 @@ public class PuzzleEstante3D : MonoBehaviour
         if (audioSource != null && somClique != null)
             audioSource.PlayOneShot(somClique);
 
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.4f);
 
         if (indice == indiceLivroCorreto)
         {
             resolvido = true;
-            Debug.Log("<color=green>LIVRO AZUL PUXADO! Alavanca ativada com sucesso.</color>");
+            Debug.Log("<color=green>LIVRO AZUL ACIONADO!</color>");
 
-            // Aguarda 1.2s para ver o livro acionado e fecha
-            yield return new WaitForSeconds(1.2f);
+            yield return new WaitForSeconds(1.0f);
+
+            // Retorna suavemente o livro para não ficar permanentemente torto
+            t = 0f;
+            while (t < duracaoMovimento)
+            {
+                t += Time.deltaTime;
+                float p = t / duracaoMovimento;
+                livro.localPosition = Vector3.Lerp(posDest, posOrig, p);
+                livro.localRotation = Quaternion.Lerp(rotDest, rotOrig, p);
+                yield return null;
+            }
+            livro.localPosition = posOrig;
+            livro.localRotation = rotOrig;
+
             FecharPuzzle();
         }
         else
@@ -170,14 +190,14 @@ public class PuzzleEstante3D : MonoBehaviour
             if (audioSource != null && somErro != null)
                 audioSource.PlayOneShot(somErro);
 
-            // Devolve o livro errado ao sítio original
+            // Devolve o livro errado ao sítio
             t = 0f;
             while (t < duracaoMovimento)
             {
                 t += Time.deltaTime;
-                float progresso = t / duracaoMovimento;
-                livro.localPosition = Vector3.Lerp(posDest, posOrig, progresso);
-                livro.localRotation = Quaternion.Lerp(rotDest, rotOrig, progresso);
+                float p = t / duracaoMovimento;
+                livro.localPosition = Vector3.Lerp(posDest, posOrig, p);
+                livro.localRotation = Quaternion.Lerp(rotDest, rotOrig, p);
                 yield return null;
             }
             livro.localPosition = posOrig;
@@ -189,18 +209,33 @@ public class PuzzleEstante3D : MonoBehaviour
 
     public void AbrirPuzzle()
     {
-        if (painelEstanteUI != null) painelEstanteUI.SetActive(true);
-        if (cameraEstante != null) cameraEstante.enabled = true;
+        puzzleAtivo = true;
+        indiceAtual = 0;
+
+        if (painelEstanteUI != null)
+            painelEstanteUI.SetActive(true);
+
+        if (cameraEstante != null)
+            cameraEstante.enabled = true;
+
+        AtualizarPosicaoCursor();
     }
 
     public void FecharPuzzle()
     {
-        if (painelEstanteUI != null) painelEstanteUI.SetActive(false);
-        if (cameraEstante != null) cameraEstante.enabled = false;
-        if (luzSelecao != null) luzSelecao.gameObject.SetActive(false);
+        puzzleAtivo = false;
 
-        // Devolve o controlo ao Player 2
+        if (cursorSelecao != null)
+            cursorSelecao.SetActive(false);
+
+        if (painelEstanteUI != null)
+            painelEstanteUI.SetActive(false);
+
+        if (cameraEstante != null)
+            cameraEstante.enabled = false;
+
         InteracaoEstante interacao = FindFirstObjectByType<InteracaoEstante>();
-        if (interacao != null) interacao.DevolverControloPlayer2();
+        if (interacao != null)
+            interacao.DevolverControloPlayer2();
     }
 }

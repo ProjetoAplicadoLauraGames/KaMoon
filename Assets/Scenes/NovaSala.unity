@@ -395,6 +395,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: NovaSala
       objectReference: {fileID: 0}
+    - target: {fileID: 5044837121211008238, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8910286135876540261, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
