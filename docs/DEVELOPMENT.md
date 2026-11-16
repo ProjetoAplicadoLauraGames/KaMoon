@@ -46,7 +46,7 @@ Nunca abrir uma segunda instância Unity em batch mode sobre o mesmo projeto enq
 
 Fontes: `Assets/Scripts/MainMenu.cs`, `OptionsMenu.cs`, `ModeMenu.cs`, `MenuLocalization.cs`, `MenuLocalizedText.cs`, `Editor/OptionsMenuBuilder.cs` e `Editor/ModeMenuBuilder.cs`.
 
-Fluxo atual: **Jogar** abre o painel de modo; **Local** segue para o briefing em split-screen e **Multiplayer** abre o lobby local. O lobby não tem rede: **Criar sala** cria uma sala local com o jogador atual, mostra `SALA LOCAL · 1 JOGADOR (TU)` e a escolha **Sala 1 · Pistas** / **Sala 2 · Desarmar**; **Iniciar** só fica disponível depois de escolher e segue para o briefing. Na partida, o multiplayer deixa apenas a câmara da sala escolhida em ecrã inteiro e desativa o outro jogador; o local mantém o split-screen. **Entrar em sala** está visível mas desativado. **Voltar** regressa ao painel anterior; reabrir o lobby repõe sempre o estado inicial (Criar e Entrar visíveis, Iniciar e escolha ocultos).
+Fluxo atual: **Jogar** abre o painel de modo; **Local** segue para o briefing em split-screen e **Multiplayer** abre o lobby **em rede sobre Mirror** (KCP, porta 7777, 2 jogadores). **Criar partida** faz `StartHost` e passa a anunciar a sala na rede local; os outros jogadores vêem-na na lista **SALAS NA REDE** e entram com um clique (`StartClient`), sem escrever IP. Cada jogador escolhe **Sala 1 · Pistas** ou **Sala 2 · Desarmar**, marca **Pronto** e o anfitrião só consegue **Iniciar** com os dois prontos em salas diferentes — a validação é feita no servidor. Na partida, cada cliente vê a câmara da sua sala em ecrã inteiro e o avatar remoto é sincronizado por poses. **Voltar** regressa ao painel anterior e desliga a sessão; reabrir o lobby repõe o estado inicial. A arquitetura de rede, as mensagens e os limites estão em [NETWORKING.md](NETWORKING.md). A lista **SALAS NA REDE** mostra o nome de quem criou a sala (`LobbySession.Nome`, enviado em `LobbyServerResponse.anfitrao`), não o IP; o IP continua a ser usado internamente na ligação.
 
 Para gerar/atualizar a UI:
 
@@ -82,6 +82,24 @@ O menu usa `Assets/Fonts/KaMoon/Rajdhani-Regular.ttf` e o respetivo asset TMP, c
 - [ ] Navegação por rato, teclado e comando funciona sem submissões duplicadas.
 - [ ] Layout, dropdowns e texto continuam legíveis a 16:9, 4:3 e numa janela pequena.
 - [ ] Sair termina a build; no Editor, o método implementado termina Play Mode.
+
+### Menu de pausa em jogo (ESC)
+
+Ficheiros: `Assets/Scripts/PauseMenu.cs` e `Assets/Scripts/Editor/PauseMenuBuilder.cs`. O builder `Tools → KaMoon → Build Pause Menu` só corre na SampleScene, fora de Play Mode, e substitui apenas `PausePanel`/`SettingsPanel`; eleva o `sortingOrder` do Canvas para 101 para ficar acima do Canvas da Hotbar. **Não guarda a cena** — guardar conscientemente depois de inspecionar.
+
+Fluxo: ESC em jogo abre a pausa (`Resumo` = retomar, `Definições`, `Sair`). Se existir um painel modal de puzzle aberto, ESC fecha primeiro o puzzle — quatro scripts de puzzle chamam `PauseMenu.NotificarModal` e o `DefaultExecutionOrder(-100)` garante a precedência. Os Settings expõem sensibilidade (rato e comando, com persistência), lista estática de controlos e volume/mute reaproveitados de `OptionsMenu`. Não há rebinding de teclas.
+
+`Sair`: no modo local volta ao MainMenu da StartMenu; em multiplayer chama `RetornoAoMenu.Iniciar("StartMenu")` e escreve `ModeMenu.AbrirLobbyAoIniciar` para abrir o LobbyPanel no regresso. Num cliente multiplayer a pausa **não** altera `Time.timeScale` (o relógio é autoridade do servidor e usa `Time.deltaTime`); só desativa os componentes de input do jogador. No host e no jogo local, `timeScale = 0`.
+
+Checklist:
+
+- [ ] ESC sem painel aberto pausa; ESC com painel de puzzle aberto fecha o puzzle e não pausa.
+- [ ] Ao pausar: `timeScale = 0` (local/host), input desativado, cursor livre, foco no primeiro botão.
+- [ ] Settings: sensibilidade altera `CapsuleMovement` e sobrevive a reiniciar; controlos e idioma PT/EN legíveis; volume/mute preservam `MasterVolume`/`MasterMuted`.
+- [ ] Voltar e ESC no Settings regressam ao painel principal sem dupla submissão.
+- [ ] Resumo retoma com `timeScale = 1`, input reativado e cursor travado conforme o modo.
+- [ ] Sair (local) abre o MainMenu; Sair (multiplayer) abre o LobbyPanel sem duplicar `NetworkManager`.
+- [ ] Painel visível e botões dentro do ecrã em janelas baixas (a captura de validação foi a 1102×511).
 
 FullScreen e resolução devem ser verificados numa build standalone: o Game View não demonstra o mesmo comportamento de uma janela do sistema operativo.
 

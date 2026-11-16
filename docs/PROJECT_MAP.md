@@ -108,6 +108,8 @@ Todos os caminhos desta secção são relativos a `Assets/Scripts/`. O inventár
 | `Navegaçao_Menus.cs` — `NavegadorMenuComando` | Navegação própria numa lista de botões com índice circular, orientação horizontal/vertical e indicador visual. Confirma invocando `Button.onClick`; cancelar invoca o botão de saída ou desativa o objeto. Lê teclado/gamepad diretamente, independentemente do EventSystem. |
 | `Navegador_keypad.cs` — `NavegadorKeypad` | Navegação própria numa grelha de três colunas, com indicador e botão de saída. Não assumir que partilha o foco do EventSystem. |
 | `Editor/OptionsMenuBuilder.cs` — `OptionsMenuBuilder` | Utilitário de Editor acessível em **Tools → KaMoon → Build Options Menu**. Exige StartMenu ativa, fora de Play Mode, e botões existentes ligados a `OpenMode`/`ChangeScene` e `QuitApplication`. Cria o painel (idioma, som, ecrã inteiro, resolução, voltar), o botão Options e liga o foco de regresso; agrupa Undo, marca a cena alterada e não a guarda automaticamente. |
+| `PauseMenu.cs` — `PauseMenu` | Menu de pausa em jogo. `Update()` lê ESC com `DefaultExecutionOrder(-100)`; `EmPausa`/`HaModalAberto`/`NotificarModal(bool)` coordenam a precedência com os puzzles. `AbrirPausa` congela `timeScale` só em local/host, desativa `CapsuleMovement`, `Hotbar`, `PlayerInteraction`, `GestorLanternas`, `LocalVoiceChat`, `PuzzleKeypad`, `PuzzleCabosTV`, `LeitorPistaArmario`, `PuzzleEstante3D`, `InteracaoEstante` e `InterruptorComutador` — estes últimos leem E/Espaço/A diretamente e, sem isso, abriam puzzles por trás do overlay —, liberta o cursor e foca o botão. `AbrirSettings`/`FecharSettings` trocam os painéis; `AplicarSensibilidade` persiste `MouseSensitivity`/`GamepadSensitivity`; `AplicarVolume` delega em `OptionsMenu`. `Sair()` usa `RetornoAoMenu.Iniciar("StartMenu")` e a flag `ModeMenu.AbrirLobbyAoIniciar`. `RetornoAoMenu.Iniciar` chama `PauseMenu.ResetarEstado()` para limpar a pausa também em saídas forçadas pelo `MatchGuard`. |
+| `Editor/PauseMenuBuilder.cs` — `PauseMenuBuilder` | **Tools → KaMoon → Build Pause Menu**. Exige SampleScene ativa e fora de Play Mode; substitui apenas `PausePanel`/`SettingsPanel`, eleva o `Canvas.sortingOrder` a 101 (acima da Hotbar), cria os controlos com o tema Rajdhani de `ModeMenuBuilder`, liga todas as referências do `PauseMenu`, agrupa Undo e marca a cena alterada sem a guardar. Os listeners são registados em runtime por `PauseMenu.Awake` — o builder não cria listeners persistentes, para evitar dupla invocação. |
 
 Dependências principais: `UnityEngine.UI`, TextMeshPro, EventSystem e Input System UI. Os navegadores manuais e o EventSystem não devem processar a mesma confirmação sem avaliação do risco de dupla execução.
 
@@ -154,6 +156,8 @@ Regra do cabo correto em `CableRandomizer.Start` (índices de forma e cabo come�
 
 A lógica espera os casos acima. O log em `SetCableTags()` acede a três nomes, por isso a seleção de menos de três cabos não é um caso seguro só porque o sorteio o permite. As tags precisam existir em `TagManager`; preencher `currentForm` e fornecer filhos válidos é parte da configuração do prefab.
 
+`PuzzleKeypad.AbrirKeypad/FecharKeypad`, `PuzzleEstante3D.AbrirPuzzle/FecharPuzzle`, `LeitorPistaArmario.AbrirNota/FecharNota` e `PuzzleCabosTV.AbrirPuzzle/FecharPuzzle` chamam `PauseMenu.NotificarModal(true/false)` para o ESC não abrir a pausa enquanto um painel está modal.
+
 ### 3.5 Tempo, derrota e explosão
 
 | Ficheiro / tipo | Responsabilidade e implementação |
@@ -180,6 +184,23 @@ Não há neste fluxo um sistema de vitória demonstrado, embora seja exigido pel
 
 P1 usa V; P2 usa RB e fallback B, conforme a implementação de bindings. Não existe transporte de rede demonstrado: não documentar como chat online. O volume global do menu também pode afetar a reprodução de voz pelo AudioListener.
 
+### Rede (Mirror)
+
+> Ver [NETWORKING.md](NETWORKING.md) para o desenho completo, mensagens e limites.
+
+| Ficheiro | Resumo |
+| --- | --- |
+| `Network/LobbyRules.cs` — `LobbyRules` | Regras puras sem dependências Unity: `MaxPlayers=2`, `Porta=7777`, `SalaValida`, `PodeComecar`, `PartidaPerdida`. |
+| `Network/LobbySession.cs` — `LobbySession` | Nome/sala/pronto escolhidos antes de existir ligação; repõe-se no arranque do Play Mode. |
+| `Network/LobbyPlayer.cs` — `LobbyPlayer` | `NetworkBehaviour` criado por `autoCreatePlayer` com `[SyncVar] displayName/room/ready`; `CmdConfigurar` sanitiza e valida; `CmdIniciar` só aceita o anfitrião (`NetworkServer.localConnection`), revalida os dois jogadores/quartos no servidor, guarda `SalaPorConexao` e chama `ServerChangeScene("SampleScene")`. |
+| `Network/MatchGuard.cs` — `MatchGuard` | Instalado em runtime no `NetworkManager`; contagem de ligações do servidor inclui a local do host; quando um jogador sai da partida faz `StopHost`/`StopClient` e volta a `StartMenu`. |
+| `Network/NetMessages.cs` | `PoseJogadorMessage`, `PoseRemotaMessage`, `AcaoJogadorMessage` (`NetAcao`), `ObjetoRemovidoMessage`, `EstadoPartidaMessage`. Serializadores gerados pelo Weaver. |
+| `Network/NetMatch.cs` — `NetMatch` | Autoridade da partida. Instalado em runtime no objeto do `NetworkManager` (sem `NetworkIdentity` nem edição de cenas). Servidor: relógio, bateria, lanterna única, keypad, cabos, itens e derrota; difunde o estado a 10 Hz. Cliente: envia pose a 20 Hz e aplica a pose remota ao avatar com `Rigidbody` cinemático. API estática usada pelo gameplay: `EmPartida`, `TempoRestante`, `Bateria(j)`, `LanternaDono`, `KeypadResolvido`, `CaboResolvido`, `Derrota`, `PedirLanterna`, `PedirKeypad`, `PedirCabo`, `PedirCaboFisico`, `PedirReabastecimento`, `PedirItem`. O input de F/Y da lanterna pertence apenas a `GestorLanternas.VerificarInputRede()` — `NetMatch` não lê teclado/comando para a lanterna, para não enviar dois pedidos por tecla (o servidor alterna `lanternaDono` a cada pedido, pelo que um duplo pedido deixava as duas luzes apagadas). |
+| `Network/LobbyServerResponse.cs` — `LobbyServerResponse` | Mensagem de descoberta própria: `uri`, `serverId` e `anfitrao`. Existe porque o `ServerResponse` do Mirror só traz uri/id e a lista de salas mostrava o IP em vez do nome de quem criou a sala. Serializador gerado pelo Weaver. |
+| `Network/LobbyNetworkDiscovery.cs` — `LobbyNetworkDiscovery` | `NetworkDiscoveryBase<ServerRequest, LobbyServerResponse>`. No anúncio envia o IPv4 local e `LobbySession.Nome`/nome da máquina como `anfitrao`; ao receber, replica a correção do Mirror de usar o IP real do remetente no URI e invoca `OnServerFound`. |
+| `Network/LobbyDiscovery.cs` — `LobbyDiscovery` | Guarda `LobbyServerResponse` por `serverId`; `Lista()` ordena por id. A lista de salas do `ModeMenu` usa `anfitrao` no botão "Entrar" em vez de `uri.Host`. |
+| `Editor/NetworkSetupBuilder.cs` — `NetworkSetupBuilder` | **Tools → KaMoon → Build Networking**: cria `Assets/Prefabs/LobbyPlayer.prefab`, adiciona `NetworkManager`+`KcpTransport` na StartMenu, porta 7777, 2 ligações, `playerPrefab` e `dontDestroyOnLoad`. Não guarda a cena. |
+
 ## 4. Scripts fora de Assets/Scripts
 
 | Caminho | Papel e limites |
@@ -201,6 +222,8 @@ Diferenças ficheiro/classe a preservar: `Navegaçao_Menus`/`NavegadorMenuComand
 | `Fullscreen` | Preferência de ecrã inteiro; fallback para o estado atual do ecrã. |
 | `ResolutionWidth`, `ResolutionHeight` | Dimensões guardadas; procura correspondência na lista disponível. |
 | `ResolutionIndex` | Compatibilidade com a versão anterior baseada em índice. |
+| `MouseSensitivity` | Sensibilidade do rato no menu de pausa; default `0.8`, clamp 0,1–2,0. |
+| `GamepadSensitivity` | Sensibilidade do comando; default `2.2`, escrita como `MouseSensitivity × (2,2 / 0,8)` para preservar a proporção. |
 
 Abrir opções preenche controlos com métodos sem notificação para não tratar o carregamento como interação. A inicialização global restaura definições mesmo sem abrir o painel. As opções incluem idioma, volume geral/mute, ecrã inteiro e resolução; qualidade gráfica e reduzir movimento foram retirados a pedido. Uma chave `QualityLevel` antiga pode permanecer no registo do utilizador, mas já não é lida nem aplicada.
 
@@ -217,6 +240,7 @@ Abrir opções preenche controlos com métodos sem notificação para não trata
 
 ### SampleScene
 
+- O Canvas `589905760` tem `sortingOrder = 101` e contém `Dot`, `Panel` (GameOverUI), `PausePanel` e `SettingsPanel`, ambos inativos por omissão, com o componente `PauseMenu` no Canvas. O `PausePanel` tem `ResumeButton`/`SettingsButton`/`QuitButton` e o `SettingsPanel` tem sliders de sensibilidade/volume, toggle de mute, lista de controlos e `BackButton`. O `Canvas.sortingOrder` foi elevado de 0 porque a Hotbar cria outro Canvas em runtime com `100`.
 - Há componentes próprios diretos de MainMenu, GameOverManager, ExplosaoBomba, TimerScript, PlayerInteraction, LeitorPistaArmario, Battery e Hotbar.
 - O botão do objeto `GameOver` (GO `1758232837`, Button `1758232839`) chama `MainMenu.RestartGame` no componente `1332752252`, anexado ao objeto **`Panel`** (`1332752248`). O nome do tipo MainMenu não é o nome desse GameObject.
 - Parte dos outros sistemas entra por instâncias de prefabs, não por componentes m_Script diretamente no ficheiro da cena.

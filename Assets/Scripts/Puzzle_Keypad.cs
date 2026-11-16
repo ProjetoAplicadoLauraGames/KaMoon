@@ -37,6 +37,8 @@ public class PuzzleKeypad : MonoBehaviour
 
     void Update()
     {
+        if (NetMatch.EmPartida) AplicarEstadoRede();
+
         if (moduloResolvido || jogadorInterativo == null) return;
 
         // Se o painel estiver aberto e carregar em B no comando (ou Esc no teclado) -> Fecha
@@ -85,6 +87,13 @@ public class PuzzleKeypad : MonoBehaviour
 
     public void Submeter()
     {
+        // Em rede o servidor valida o codigo.
+        if (NetMatch.EmPartida)
+        {
+            NetMatch.PedirKeypad(entradaAtual);
+            return;
+        }
+
         if (entradaAtual == codigoCorreto)
         {
             textoDisplay.text = "<color=green>ACESSO OK</color>";
@@ -116,6 +125,7 @@ public class PuzzleKeypad : MonoBehaviour
 
     public void AbrirKeypad()
     {
+        PauseMenu.NotificarModal(true);
         painelAberto = true;
         painelKeypad.SetActive(true);
         Limpar();
@@ -123,8 +133,20 @@ public class PuzzleKeypad : MonoBehaviour
 
     public void FecharKeypad()
     {
+        if (!painelAberto) return;
+        PauseMenu.NotificarModal(false);
         painelAberto = false;
         painelKeypad.SetActive(false);
+    }
+
+    private void AplicarEstadoRede()
+    {
+        if (moduloResolvido || !NetMatch.KeypadResolvido) return;
+
+        moduloResolvido = true;
+        if (textoDisplay != null)
+            textoDisplay.text = "<color=green>ACESSO OK</color>";
+        FecharKeypad();
     }
 
     private void OnDrawGizmosSelected()

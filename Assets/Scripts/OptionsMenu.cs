@@ -21,8 +21,8 @@ public class OptionsMenu : MonoBehaviour
     public GameObject menuPrincipal;
     public Button returnFocusButton;
 
-    private const string KeyVolume = "MasterVolume";
-    private const string KeyMuted = "MasterMuted";
+    public const string KeyVolume = "MasterVolume";
+    public const string KeyMuted = "MasterMuted";
     private const string KeyFullscreen = "Fullscreen";
     private const string KeyResolution = "ResolutionIndex";
     private const string KeyWidth = "ResolutionWidth";
@@ -159,6 +159,18 @@ public class OptionsMenu : MonoBehaviour
     private static void AplicarSom()
     {
         AudioListener.volume = PlayerPrefs.GetInt(KeyMuted, 0) == 1 ? 0f : VolumeGuardado();
+    }
+
+    public static float VolumeAtual => VolumeGuardado();
+    public static bool SomSilenciado => PlayerPrefs.GetInt(KeyMuted, 0) == 1;
+
+    public static void AplicarSom(float volume, bool muted)
+    {
+        volume = Mathf.Clamp01(volume);
+        PlayerPrefs.SetFloat(KeyVolume, volume);
+        PlayerPrefs.SetInt(KeyMuted, muted ? 1 : 0);
+        PlayerPrefs.Save();
+        AudioListener.volume = muted ? 0f : volume;
     }
 
     private void AtualizarPercentagemVolume()

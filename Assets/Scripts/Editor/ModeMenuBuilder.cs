@@ -97,41 +97,55 @@ public static class ModeMenuBuilder
         // ---- Painel de lobby ----
         var lobbyPanel = CriarPainel(canvas.transform, "LobbyPanel");
         CriarLabel(lobbyPanel.transform, "Title", MenuTextKey.LobbyTitle,
-            new Vector2(0f, 250f), new Vector2(800f, 70f), 40, FontStyles.Bold, TextColor, font);
-        CriarLabel(lobbyPanel.transform, "Note", MenuTextKey.LobbyUnavailable,
-            new Vector2(0f, 160f), new Vector2(820f, 90f), 20, FontStyles.Normal, MutedColor, font);
+            new Vector2(0f, 450f), new Vector2(620f, 70f), 40, FontStyles.Bold, TextColor, font);
+        var status = CriarLabel(lobbyPanel.transform, "HostBadge", MenuTextKey.LobbyHost,
+            new Vector2(350f, 455f), new Vector2(180f, 36f), 18, FontStyles.Bold, AccentColor, font);
+        status.alignment = TextAlignmentOptions.Right;
+        CriarLabel(lobbyPanel.transform, "Note", MenuTextKey.LobbyHelp,
+            new Vector2(0f, 380f), new Vector2(860f, 60f), 19, FontStyles.Normal, MutedColor, font);
 
-        var status = CriarLabel(lobbyPanel.transform, "Status", MenuTextKey.LobbyCreated,
-            new Vector2(0f, 88f), new Vector2(760f, 40f), 26, FontStyles.Bold, AccentColor, font);
-        status.gameObject.SetActive(false);
+        // Sem campos de nome/IP: a lista de salas (descoberta em LAN) é preenchida em runtime.
+        var salasGrupo = new GameObject("RoomsList", typeof(RectTransform));
+        var salasRt = salasGrupo.GetComponent<RectTransform>();
+        salasRt.SetParent(lobbyPanel.transform, false);
+        salasRt.anchorMin = salasRt.anchorMax = salasRt.pivot = new Vector2(0.5f, 0.5f);
+        salasRt.anchoredPosition = new Vector2(0f, 140f);
+        salasRt.sizeDelta = new Vector2(620f, 160f);
+        Undo.RegisterCreatedObjectUndo(salasGrupo, "Create RoomsList");
+
+        var lobbyCriar = CriarBotao(lobbyPanel.transform, "Create", MenuTextKey.LobbyCreate,
+            new Vector2(-150f, 240f), font);
+        var lobbyEntrar = CriarBotao(lobbyPanel.transform, "Join", MenuTextKey.LobbyJoin,
+            new Vector2(150f, 240f), font);
+
+        var netStatus = CriarTexto(lobbyPanel.transform, "NetStatus", string.Empty,
+            new Vector2(0f, 92f), new Vector2(860f, 40f), 19, FontStyles.Normal, MutedColor, font);
+
+        var playersLabel = CriarTexto(lobbyPanel.transform, "Players", string.Empty,
+            new Vector2(0f, 8f), new Vector2(820f, 100f), 22, FontStyles.Normal, TextColor, font);
+        playersLabel.alignment = TextAlignmentOptions.Left;
 
         var roomChoice = CriarGrupo(lobbyPanel.transform, "RoomChoice");
         CriarLabel(roomChoice.transform, "RoomTitle", MenuTextKey.LobbyRoomTitle,
-            new Vector2(0f, 20f), new Vector2(760f, 36f), 20, FontStyles.Bold, MutedColor, font);
+            new Vector2(0f, -64f), new Vector2(760f, 36f), 20, FontStyles.Bold, MutedColor, font);
         var lobbyRoomOne = CriarBotao(roomChoice.transform, "RoomOne", MenuTextKey.LobbyRoomOne,
-            new Vector2(-150f, -40f), font);
+            new Vector2(-170f, -124f), font);
         var lobbyRoomTwo = CriarBotao(roomChoice.transform, "RoomTwo", MenuTextKey.LobbyRoomTwo,
-            new Vector2(150f, -40f), font);
+            new Vector2(170f, -124f), font);
 
-        var lobbyCriar = CriarBotao(lobbyPanel.transform, "Create", MenuTextKey.LobbyCreate,
-            new Vector2(0f, 0f), font);
-        var lobbyEntrar = CriarBotao(lobbyPanel.transform, "Join", MenuTextKey.LobbyJoin,
-            new Vector2(0f, -80f), font);
+        var lobbyPronto = CriarBotao(lobbyPanel.transform, "Ready", MenuTextKey.LobbyReady,
+            new Vector2(0f, -210f), font);
         var lobbyIniciar = CriarBotao(lobbyPanel.transform, "Start", MenuTextKey.LobbyStart,
-            new Vector2(0f, -125f), font);
+            new Vector2(0f, -278f), font);
         var lobbyVoltar = CriarBotao(lobbyPanel.transform, "Back", MenuTextKey.Back,
-            new Vector2(0f, -220f), font);
+            new Vector2(0f, -350f), font);
         DefinirCamadaUI(lobbyPanel);
 
-        // Sem rede nao ha salas a que se juntar: o botao fica visivel mas inativo.
-        lobbyEntrar.interactable = false;
-        var grupoEntrar = Undo.AddComponent<CanvasGroup>(lobbyEntrar.gameObject);
-        grupoEntrar.alpha = 0.5f;
-        grupoEntrar.interactable = false;
-
         UnityEventTools.AddVoidPersistentListener(lobbyCriar.onClick, mode.CriarSala);
+        UnityEventTools.AddVoidPersistentListener(lobbyEntrar.onClick, mode.Entrar);
         UnityEventTools.AddVoidPersistentListener(lobbyRoomOne.onClick, mode.EscolherSala1);
         UnityEventTools.AddVoidPersistentListener(lobbyRoomTwo.onClick, mode.EscolherSala2);
+        UnityEventTools.AddVoidPersistentListener(lobbyPronto.onClick, mode.AlternarPronto);
         UnityEventTools.AddVoidPersistentListener(lobbyIniciar.onClick, mode.Iniciar);
         UnityEventTools.AddVoidPersistentListener(lobbyVoltar.onClick, mode.VoltarLobby);
         var lobbyCancel = Undo.AddComponent<MenuCancel>(lobbyPanel);
@@ -142,7 +156,13 @@ public static class ModeMenuBuilder
         mode.createButton = lobbyCriar;
         mode.joinButton = lobbyEntrar;
         mode.startButton = lobbyIniciar;
+        mode.readyButton = lobbyPronto;
+        mode.nameField = null;
+        mode.ipField = null;
+        mode.roomsContainer = salasRt;
         mode.lobbyStatus = status;
+        mode.playersLabel = playersLabel;
+        mode.netStatus = netStatus;
         mode.roomChoice = roomChoice;
         mode.roomOneButton = lobbyRoomOne;
         mode.roomTwoButton = lobbyRoomTwo;
@@ -162,6 +182,8 @@ public static class ModeMenuBuilder
         modePanel.SetActive(false);
         lobbyPanel.SetActive(false);
         lobbyIniciar.gameObject.SetActive(false);
+        lobbyPronto.gameObject.SetActive(false);
+        status.gameObject.SetActive(false);
         roomChoice.SetActive(false);
         lobbyCriar.gameObject.SetActive(true);
 
@@ -212,6 +234,73 @@ public static class ModeMenuBuilder
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.raycastTarget = false;
         go.AddComponent<MenuLocalizedText>().SetKey(key);
+        return tmp;
+    }
+
+    private static TextMeshProUGUI CriarTexto(Transform pai, string nome, string conteudo, Vector2 posicao,
+        Vector2 tamanho, int fonte, FontStyles estilo, Color cor, TMP_FontAsset font)
+    {
+        var go = new GameObject(nome, typeof(RectTransform), typeof(TextMeshProUGUI));
+        Colocar(go.transform, pai, posicao, tamanho);
+        var tmp = go.GetComponent<TextMeshProUGUI>();
+        if (font != null) tmp.font = font;
+        tmp.text = conteudo;
+        tmp.fontSize = fonte;
+        tmp.fontStyle = estilo;
+        tmp.color = cor;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.raycastTarget = false;
+        return tmp;
+    }
+
+    /// <summary>Campo de texto simples para o nome e o IP (o valor e preenchido em runtime).</summary>
+    private static TMP_InputField CriarInput(Transform pai, string nome, string dica, Vector2 posicao,
+        Vector2 tamanho, TMP_FontAsset font)
+    {
+        var go = new GameObject(nome, typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
+        Colocar(go.transform, pai, posicao, tamanho);
+        var fundo = go.GetComponent<Image>();
+        fundo.color = new Color(0.06f, 0.12f, 0.13f, 1f);
+
+        var area = new GameObject("Text Area", typeof(RectTransform), typeof(RectMask2D));
+        var areaRt = area.GetComponent<RectTransform>();
+        areaRt.SetParent(go.transform, false);
+        areaRt.anchorMin = Vector2.zero;
+        areaRt.anchorMax = Vector2.one;
+        areaRt.offsetMin = new Vector2(14f, 6f);
+        areaRt.offsetMax = new Vector2(-14f, -6f);
+
+        var texto = CriarTextoInterno(area.transform, "Text", string.Empty, font, TextColor);
+        var placeholder = CriarTextoInterno(area.transform, "Placeholder", dica, font, MutedColor);
+
+        var campo = go.GetComponent<TMP_InputField>();
+        campo.targetGraphic = fundo;
+        campo.textViewport = areaRt;
+        campo.textComponent = texto;
+        campo.placeholder = placeholder;
+        campo.lineType = TMP_InputField.LineType.SingleLine;
+        campo.pointSize = 22;
+        campo.caretColor = AccentColor;
+        campo.selectionColor = new Color(0.3f, 0.48f, 0.39f, 0.6f);
+        return campo;
+    }
+
+    private static TextMeshProUGUI CriarTextoInterno(Transform pai, string nome, string conteudo,
+        TMP_FontAsset font, Color cor)
+    {
+        var go = new GameObject(nome, typeof(RectTransform), typeof(TextMeshProUGUI));
+        var rt = go.GetComponent<RectTransform>();
+        rt.SetParent(pai, false);
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var tmp = go.GetComponent<TextMeshProUGUI>();
+        if (font != null) tmp.font = font;
+        tmp.text = conteudo;
+        tmp.fontSize = 22;
+        tmp.color = cor;
+        tmp.alignment = TextAlignmentOptions.Left;
+        tmp.raycastTarget = false;
         return tmp;
     }
 

@@ -16,6 +16,13 @@ public class PlayerInteraction : MonoBehaviour
             if (dot != null) dot.SetActive(true);
             if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
+                // Em rede o servidor valida o cabo; o objeto so desaparece por ordem dele.
+                if (NetMatch.EmPartida)
+                {
+                    NetMatch.PedirCaboFisico(hit.collider.gameObject.name);
+                    return;
+                }
+
                 if (hit.collider.CompareTag("WrongCable"))
                 {
                     Debug.Log("Wrong cable cut!");

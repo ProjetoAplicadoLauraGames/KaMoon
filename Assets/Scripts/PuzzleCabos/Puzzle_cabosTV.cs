@@ -44,6 +44,8 @@ public class PuzzleCabosTV : MonoBehaviour
 
     void Update()
     {
+        if (NetMatch.EmPartida) AplicarEstadoRede();
+
         if (moduloResolvido || jogadorP2 == null) return;
 
         float dist = Vector3.Distance(transform.position, jogadorP2.position);
@@ -60,18 +62,42 @@ public class PuzzleCabosTV : MonoBehaviour
         }
     }
 
+    private void AplicarEstadoRede()
+    {
+        if (moduloResolvido || !NetMatch.CaboResolvido) return;
+
+        moduloResolvido = true;
+        if (cabos != null)
+        {
+            foreach (Button cabo in cabos)
+                if (cabo != null) cabo.interactable = false;
+        }
+        FecharPuzzle();
+    }
+
     public void AbrirPuzzle()
     {
+        PauseMenu.NotificarModal(true);
         painelPuzzle.SetActive(true);
     }
 
     public void FecharPuzzle()
     {
+        if (painelPuzzle == null || !painelPuzzle.activeSelf) return;
+        PauseMenu.NotificarModal(false);
         painelPuzzle.SetActive(false);
     }
 
     public void CortarCabo(int index)
     {
+        // Em rede o servidor decide se o cabo esta certo.
+        if (NetMatch.EmPartida)
+        {
+            if (cabos[index] != null) cabos[index].interactable = false;
+            NetMatch.PedirCabo(index);
+            return;
+        }
+
         cabos[index].interactable = false;
 
         if (index == indiceCaboCorreto)
