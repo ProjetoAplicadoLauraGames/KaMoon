@@ -240,7 +240,7 @@ public class PauseMenu : MonoBehaviour
         Desativar<LeitorPistaArmario>();
         Desativar<PuzzleEstante3D>();
         Desativar<InteracaoEstante>();
-        Desativar<InterruptorComutador>();
+        //Desativar<InterruptorComutador>();
     }
 
     private void Desativar<T>() where T : Behaviour
