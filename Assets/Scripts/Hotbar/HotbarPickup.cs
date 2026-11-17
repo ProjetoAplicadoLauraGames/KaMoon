@@ -23,26 +23,29 @@ public class HotbarPickup : MonoBehaviour
             col.isTrigger = true;
     }
 
-    public void TryPickup(Hotbar hotbar)
+    /// <summary>Devolve true se o item entrou na hotbar.</summary>
+    public bool TryPickup(Hotbar hotbar)
     {
         if (hotbar == null)
-            return;
+            return false;
 
         if (onlyPlayerNumber != 0 && hotbar.PlayerNumber != onlyPlayerNumber)
-            return;
+            return false;
 
         if (item == null)
         {
             Debug.LogWarning("[HotbarPickup] Sem HotbarItem atribuído em " + name);
-            return;
+            return false;
         }
 
-        if (hotbar.AddItem(item))
-        {
-            if (destroyOnPickup)
-                Destroy(gameObject);
-            else
-                gameObject.SetActive(false);
-        }
+        if (!hotbar.AddItem(item))
+            return false;
+
+        if (destroyOnPickup)
+            Destroy(gameObject);
+        else
+            gameObject.SetActive(false);
+
+        return true;
     }
 }

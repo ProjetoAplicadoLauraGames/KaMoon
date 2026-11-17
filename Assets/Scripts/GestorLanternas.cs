@@ -23,8 +23,37 @@ public class GestorLanternas : MonoBehaviour
 
     void Update()
     {
+        // Em rede o servidor decide a lanterna ativa; aqui aplica-se o estado recebido
+        // e o input local apenas envia o pedido (antes o F era ignorado em rede).
+        if (NetMatch.EmPartida)
+        {
+            AplicarEstadoRede(NetMatch.LanternaDono);
+            VerificarInputRede();
+            return;
+        }
+
         VerificarInputTeclado();
         VerificarInputCommando();
+    }
+
+    /// <summary>Pede ao servidor para alternar a lanterna deste jogador (rede).</summary>
+    private void VerificarInputRede()
+    {
+        if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        {
+            NetMatch.PedirLanterna();
+            return;
+        }
+
+        if (Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame)
+            NetMatch.PedirLanterna();
+    }
+
+    /// <summary>Aplica a lanterna ativa decidida pelo servidor (1 ou 2; 0 = nenhuma).</summary>
+    private void AplicarEstadoRede(int dono)
+    {
+        if (lanternaP1 != null) lanternaP1.enabled = dono == 1;
+        if (lanternaP2 != null) lanternaP2.enabled = dono == 2;
     }
 
     // --- CONTROLO DO PLAYER 1 (TECLADO) ---
@@ -55,6 +84,13 @@ public class GestorLanternas : MonoBehaviour
     // Sem bateria (task #17), o jogador não pode ligar a lanterna.
     public void AtivarLanterna(int numeroJogador)
     {
+        // Em rede o pedido vai para o servidor, que decide e replica.
+        if (NetMatch.EmPartida)
+        {
+            NetMatch.PedirLanterna();
+            return;
+        }
+
         if (lanternaP1 == null || lanternaP2 == null) return;
 
         foreach (Battery battery in FindObjectsByType<Battery>(FindObjectsSortMode.None))

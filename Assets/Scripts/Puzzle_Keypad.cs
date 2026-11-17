@@ -1,7 +1,10 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using System.Numerics;
+
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -11,6 +14,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     [Header("Interface UI")]
     public GameObject painelKeypad;
     public TextMeshProUGUI textoDisplay;
+    public TextMeshProUGUI textoTampa;
 
     [Header("Grelha de 12 Botões (Ordem exata: 1,2,3, 4,5,6, 7,8,9, CLR,0,OK)")]
     public Button[] botoesGrelha = new Button[12];
@@ -25,10 +29,17 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     [Header("Detonação / Feedback")]
     public GameOverManager gameOver;
 
+    [Header("Tampa do Keypad")]
+    public GameObject tampaKeypad;
+    private bool tampaFora = false;
+    public Hotbar hotbar;
+    public Transform destinoTampa;
+
     private string codigoAtual = "";
     private bool puzzleResolvido = false;
     private int indiceBotaoAtual = 0;
     private float tempoAbertura = 0f;
+    private float typingSpeed = 0.04f;
 
     private CapsuleMovement playerMovement;
     private PlayerInteraction playerInteraction;
@@ -77,6 +88,23 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     {
         if (puzzleResolvido || painelKeypad == null || painelKeypad.activeSelf) return;
 
+        if (!tampaFora && !hotbar.HasItem("screwdriver"))
+        {
+            StartCoroutine(TypeTextRoutine("Might need a screwdriver to open this."));
+            return;
+        }
+        else if (!tampaFora && hotbar.HasItem("screwdriver"))
+        {
+            tampaFora = true;
+            if (tampaKeypad != null) tampaKeypad.transform.position= destinoTampa.position;
+            StartCoroutine(TypeTextRoutine("The keypad is now accessible."));
+            return;
+        }
+
+        
+
+
+
         codigoAtual = "";
         indiceBotaoAtual = 0;
         tempoAbertura = Time.time;
@@ -86,11 +114,20 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         if (playerInteraction != null) playerInteraction.emPuzzle = true;
 
         painelKeypad.SetActive(true);
+        PauseMenu.NotificarModal(true);
         AtualizarDestaqueBotao();
     }
 
     void Update()
     {
+        if (NetMatch.EmPartida && NetMatch.KeypadResolvido)
+        {
+            puzzleResolvido = true;
+            if (textoDisplay != null) textoDisplay.text = "OK!";
+            FecharKeypad();
+            return;
+        }
+
         if (painelKeypad == null || !painelKeypad.activeSelf || puzzleResolvido) return;
 
         // Ignora inputs durante os primeiros 0.15s para o botão A que abriu o painel não clicar logo no "1"
@@ -197,6 +234,8 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         AtualizarDisplay();
     }
 
+    public void InserirDigito(string digito) => AdicionarDigito(digito);
+
     public void ApagarUltimoDigito()
     {
         if (puzzleResolvido) return;
@@ -205,9 +244,17 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         AtualizarDisplay();
     }
 
+    public void Limpar() => ApagarUltimoDigito();
+
     public void VerificarCodigo()
     {
         if (puzzleResolvido) return;
+
+        if (NetMatch.EmPartida)
+        {
+            NetMatch.PedirKeypad(codigoAtual);
+            return;
+        }
 
         if (codigoAtual == codigoCorreto)
         {
@@ -225,6 +272,10 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         }
     }
 
+    public void Submeter() => VerificarCodigo();
+
+    public void AbrirKeypad() => Interagir();
+
     private void AtualizarDisplay()
     {
         if (textoDisplay != null)
@@ -234,6 +285,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     public void FecharKeypad()
     {
         if (painelKeypad != null) painelKeypad.SetActive(false);
+        PauseMenu.NotificarModal(false);
 
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(null);
@@ -241,4 +293,44 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         if (playerMovement != null) playerMovement.enabled = true;
         if (playerInteraction != null) playerInteraction.emPuzzle = false;
     }
+
+    private IEnumerator TypeTextRoutine(string textToType)
+    {
+        textoTampa.text = textToType;
+        textoTampa.maxVisibleCharacters = 0;
+
+        // Força o TMP a calcular quantos caracteres visíveis existem (ignorando tags)
+        textoTampa.ForceMeshUpdate();
+        int totalVisibleCharacters = textoTampa.textInfo.characterCount;
+
+        for (int i = 0; i <= totalVisibleCharacters; i++)
+        {
+            textoTampa.maxVisibleCharacters = i;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        yield return new WaitForSeconds(2f);
+        StartCoroutine(FadeOutTextRoutine());
+    }
+
+    private IEnumerator FadeOutTextRoutine()
+    {
+        // Força o TMP a calcular quantos caracteres visíveis existem (ignorando tags)
+        textoTampa.ForceMeshUpdate();
+        int totalVisibleCharacters = textoTampa.textInfo.characterCount;
+
+        for (int i = totalVisibleCharacters - 1; i >= 0; i--)
+        {
+            textoTampa.maxVisibleCharacters = i;
+            yield return new WaitForSeconds(typingSpeed);
+        }
+        textoTampa.text = "";
+    }
+
+
+
+}
+
+// Compatibility for scenes and prefabs created before the keypad was renamed.
+public class PuzzleKeypad : Puzzle_Keypad
+{
 }

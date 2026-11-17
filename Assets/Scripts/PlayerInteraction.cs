@@ -3,12 +3,12 @@ using UnityEngine.InputSystem;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    [Header("Configurações de Mira (Raycast)")]
-    [Tooltip("Arrasta a Câmara deste jogador (de onde sai o olhar)")]
+    [Header("Configuraï¿½ï¿½es de Mira (Raycast)")]
+    [Tooltip("Arrasta a Cï¿½mara deste jogador (de onde sai o olhar)")]
     public Transform InteractorSource;
-    [Tooltip("Distância máxima em metros para alcançar objetos")]
+    [Tooltip("Distï¿½ncia mï¿½xima em metros para alcanï¿½ar objetos")]
     public float InteractRange = 3f;
-    [Tooltip("Ponto/mira no centro do ecrã deste jogador")]
+    [Tooltip("Ponto/mira no centro do ecrï¿½ deste jogador")]
     public GameObject dot;
 
     [Header("Input deste Jogador")]
@@ -22,7 +22,7 @@ public class PlayerInteraction : MonoBehaviour
 
     void Update()
     {
-        // Se não tiver câmara associada ou estiver dentro de um puzzle, desliga o ponto e ignora
+        // Se nï¿½o tiver cï¿½mara associada ou estiver dentro de um puzzle, desliga o ponto e ignora
         if (InteractorSource == null || emPuzzle)
         {
             if (dot != null && dot.activeSelf) dot.SetActive(false);
@@ -36,7 +36,7 @@ public class PlayerInteraction : MonoBehaviour
             // Procura qualquer script no objeto (ou no pai dele) que implemente IInteragivel
             IInteragivel interagivel = hit.collider.GetComponentInParent<IInteragivel>();
 
-            // Mantém suporte direto para os cabos já montados na cena
+            // Mantï¿½m suporte direto para os cabos jï¿½ montados na cena
             bool eCabo = hit.collider.CompareTag("WrongCable") || hit.collider.CompareTag("CorrectCable");
 
             if (interagivel != null || eCabo)
@@ -51,14 +51,17 @@ public class PlayerInteraction : MonoBehaviour
                     }
                     else if (eCabo)
                     {
-                        ProcessarCabo(hit.collider.gameObject);
+                        if (NetMatch.EmPartida)
+                            NetMatch.PedirCaboFisico(hit.collider.gameObject.name);
+                        else
+                            ProcessarCabo(hit.collider.gameObject);
                     }
                 }
                 return;
             }
         }
 
-        // Não está a olhar para nada interagível
+        // Nï¿½o estï¿½ a olhar para nada interagï¿½vel
         if (dot != null && dot.activeSelf) dot.SetActive(false);
     }
 
@@ -66,7 +69,7 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (usarComando && Gamepad.current != null)
         {
-            // Botão A (Xbox) / X (PlayStation)
+            // Botï¿½o A (Xbox) / X (PlayStation)
             if (Gamepad.current.buttonSouth.wasPressedThisFrame)
                 return true;
         }

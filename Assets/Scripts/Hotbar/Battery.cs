@@ -34,6 +34,15 @@ public class Battery : MonoBehaviour
     public bool IsDepleted => Charge <= 0f;
     public int PlayerNumber => playerNumber;
 
+    /// <summary>Consumo por segundo com a lanterna ligada (fracao da carga).</summary>
+    public float DrenagemPorSegundoLanterna => lanternSeconds > 0f ? 1f / lanternSeconds : 0f;
+
+    /// <summary>Consumo por segundo com o radio a falar (fracao da carga).</summary>
+    public float DrenagemPorSegundoVoz => voiceSeconds > 0f ? 1f / voiceSeconds : 0f;
+
+    /// <summary>Em rede a carga e autoridade do servidor (NetMatch).</summary>
+    public void DefinirCarga(float valor) => Charge = Mathf.Clamp01(valor);
+
     private GestorLanternas lanternManager;
     private LocalVoiceChat voice;
 
@@ -71,6 +80,13 @@ public class Battery : MonoBehaviour
 
     private void Update()
     {
+        // Em rede a carga vem do servidor: aqui so se aplica o valor recebido.
+        if (NetMatch.EmPartida)
+        {
+            DefinirCarga(NetMatch.Bateria(playerNumber));
+            return;
+        }
+
         if (IsDepleted) return;
 
         // Só gasta a usar: lanterna ligada e/ou a falar.
@@ -118,6 +134,9 @@ public class Battery : MonoBehaviour
     private void OnGUI()
     {
         if (!showChargeBar) return;
+
+        // Em multiplayer so o dono do ecra desenha a sua barra; o HUD do outro pertence ao outro cliente.
+        if (GameSession.multiplayer && playerNumber != GameSession.room) return;
 
         float w = 180f, h = 18f;
         float x = playerNumber == 1 ? 10f : Screen.width - w - 10f;
