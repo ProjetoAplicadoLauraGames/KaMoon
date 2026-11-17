@@ -3,15 +3,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-public class LeitorPistaArmario : MonoBehaviour
+public class LeitorPistaArmario : MonoBehaviour, IInteragivel
 {
     [Header("Interface da Pista")]
     public GameObject painelNota; // O Painel_NotaArmario
 
-    [Header("Interacao")]
-    public float distanciaInteracao = 3.5f;
-    [Tooltip("Arrasta aqui o Player 1 (Teclado)")]
-    public Transform jogadorP1;
+    private GameObject portaArmario;
+    private bool isOpen = false;
 
     private bool notaAberta = false;
 
@@ -19,40 +17,20 @@ public class LeitorPistaArmario : MonoBehaviour
     {
         if (painelNota != null)
             painelNota.SetActive(false);
+        
+        portaArmario = transform.GetChild(0).gameObject;
     }
 
-    void Update()
+    public void Interagir()
     {
-        if (jogadorP1 == null) return;
-
-        float dist = Vector3.Distance(transform.position, jogadorP1.position);
-
-        // Tecla E para abrir/fechar e tecla Escape para sair rapido
-        bool carregarE = false;
-        bool carregarEsc = false;
-
-#if ENABLE_INPUT_SYSTEM
-        if (Keyboard.current != null)
+        if (portaArmario != null)
         {
-            carregarE = Keyboard.current.eKey.wasPressedThisFrame;
-            carregarEsc = Keyboard.current.escapeKey.wasPressedThisFrame;
-        }
-#else
-        carregarE = Input.GetKeyDown(KeyCode.E);
-        carregarEsc = Input.GetKeyDown(KeyCode.Escape);
-#endif
-
-        // Se a nota estiver aberta e carregar em Esc ou E -> Fecha
-        if (notaAberta && (carregarE || carregarEsc))
-        {
-            FecharNota();
-            return;
-        }
-
-        // Se estiver perto do armario e carregar em E -> Abre
-        if (dist <= distanciaInteracao && carregarE && !notaAberta)
-        {
-            AbrirNota();
+            if (!isOpen) {
+                portaArmario.transform.Rotate(0f, -100f, 0f);
+                isOpen = true;
+            } else {
+                portaArmario.transform.Rotate(0f, 100f, 0f);
+                isOpen = false;}
         }
     }
 
@@ -73,11 +51,5 @@ public class LeitorPistaArmario : MonoBehaviour
         notaAberta = false;
         if (painelNota != null)
             painelNota.SetActive(false);
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, distanciaInteracao);
     }
 }
