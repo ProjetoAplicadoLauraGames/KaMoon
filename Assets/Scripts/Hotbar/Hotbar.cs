@@ -29,6 +29,11 @@ public class Hotbar : MonoBehaviour
     [Tooltip("Spotlight própria. Se houver GestorLanternas na cena, ele tem prioridade.")]
     [SerializeField] private Light flashlight;
 
+    [Header("Papel (item \"paper\")")]
+    [SerializeField] private GameObject paperPrefab;
+    [SerializeField] private Canvas canvas;
+
+
     [Header("Visual dos slots")]
     [SerializeField] private float slotSize = 64f;
     [SerializeField] private float slotSpacing = 8f;
@@ -218,6 +223,8 @@ public class Hotbar : MonoBehaviour
             UseFlashlight(item);
         else if (item.itemId == "battery")
             UseBattery(item);
+        else if (item.itemId == "codegiver")
+            OpenPaper(item);
         else
             Debug.Log($"[Hotbar P{playerNumber}] Usar '{item.displayName}' (sem comportamento).");
     }
@@ -292,6 +299,13 @@ public class Hotbar : MonoBehaviour
         {
             Debug.LogWarning($"[Hotbar P{playerNumber}] Item '{item.displayName}' sem lanterna atribuída nem GestorLanternas na cena.");
         }
+    }
+
+    private void OpenPaper(HotbarItem item)
+    {
+        Debug.Log($"[Hotbar P{playerNumber}] Abrir papel (item '{item.displayName}').");
+        GameObject rawImageObj = Instantiate(paperPrefab);
+        rawImageObj.transform.SetParent(canvas.transform, false);
     }
 
     private void BuildUI()

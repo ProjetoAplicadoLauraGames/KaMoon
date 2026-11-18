@@ -870,6 +870,7 @@ MonoBehaviour:
   useKeyP1: 20
   useGamepad: 1
   flashlight: {fileID: 0}
+  paperPrefab: {fileID: 100100000, guid: 735505e210523374f846a7d7b645152d, type: 3}
   slotSize: 64
   slotSpacing: 8
   emptyColor: {r: 0, g: 0, b: 0, a: 0.45}
@@ -1038,6 +1039,7 @@ MonoBehaviour:
   useKeyP1: 20
   useGamepad: 0
   flashlight: {fileID: 0}
+  paperPrefab: {fileID: 100100000, guid: 735505e210523374f846a7d7b645152d, type: 3}
   slotSize: 64
   slotSpacing: 8
   emptyColor: {r: 0, g: 0, b: 0, a: 0.45}
