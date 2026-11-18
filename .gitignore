@@ -52,3 +52,5 @@ sysinfo.txt
 
 # Cache/local state from FreeBuff
 /.freebuff/
+# Mockups locais do brainstorming
+/.superpowers/
