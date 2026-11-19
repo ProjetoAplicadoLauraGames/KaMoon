@@ -3,8 +3,9 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// Hotbar por jogador. A barra é um Canvas guardado na cena (Tools → KaMoon → Build Hotbar Canvas);
-/// em runtime este script só atualiza os slots e ajusta as âncoras ao modo de jogo.
+/// Hotbar por jogador (task #21). Não precisa de setup na cena:
+/// constrói a sua barra (UGUI) em runtime, metade esquerda (P1)
+/// ou direita (P2) para funcionar em splitscreen.
 /// P1: teclas 1-4 escolhem slot, G usa. P2: d-pad esq/dir muda,
 /// R3 usa. Slot 0 é a lanterna por defeito.
 /// </summary>
@@ -27,6 +28,11 @@ public class Hotbar : MonoBehaviour
     [Header("Lanterna (item \"flashlight\")")]
     [Tooltip("Spotlight própria. Se houver GestorLanternas na cena, ele tem prioridade.")]
     [SerializeField] private Light flashlight;
+
+    [Header("Papel (item \"paper\")")]
+    [SerializeField] private GameObject paperPrefab;
+    [SerializeField] private Canvas canvas;
+
 
     [Header("Visual dos slots")]
     [SerializeField] private float slotSize = 64f;
@@ -83,14 +89,28 @@ public class Hotbar : MonoBehaviour
         RefreshUI();
     }
 
+    private void NormalizeItems()
+    {
+        if (slotCount < 1) slotCount = 1;
+        if (slotCount > 8) slotCount = 8;
+        if (items == null || items.Length != slotCount)
+        {
+            HotbarItem[] resized = new HotbarItem[slotCount];
+            if (items != null)
+                for (int i = 0; i < Mathf.Min(items.Length, slotCount); i++)
+                    resized[i] = items[i];
+            items = resized;
+        }
+        SelectedIndex = Mathf.Clamp(SelectedIndex, 0, slotCount - 1);
+    }
+
     /// <summary>Usa a hierarquia guardada na cena; não cria nada em runtime.</summary>
     private bool LigarUI()
     {
         return hotbarCanvas != null && bar != null && slotBackgrounds != null &&
                slotIcons != null && crosshair != null &&
                crosshairOutline != null && crosshairDot != null &&
-               slotBackgrounds.Length == slotCount &&
-               slotIcons.Length == slotCount;
+               slotBackgrounds.Length == slotCount && slotIcons.Length == slotCount;
     }
 
     private void AjustarAncoras()
@@ -111,21 +131,6 @@ public class Hotbar : MonoBehaviour
         Sprite circulo = CrosshairCircle();
         crosshairOutline.sprite = circulo;
         crosshairDot.sprite = circulo;
-    }
-
-    private void NormalizeItems()
-    {
-        if (slotCount < 1) slotCount = 1;
-        if (slotCount > 8) slotCount = 8;
-        if (items == null || items.Length != slotCount)
-        {
-            HotbarItem[] resized = new HotbarItem[slotCount];
-            if (items != null)
-                for (int i = 0; i < Mathf.Min(items.Length, slotCount); i++)
-                    resized[i] = items[i];
-            items = resized;
-        }
-        SelectedIndex = Mathf.Clamp(SelectedIndex, 0, slotCount - 1);
     }
 
     private void Update()
@@ -268,6 +273,8 @@ public class Hotbar : MonoBehaviour
             UseFlashlight(item);
         else if (item.itemId == "battery")
             UseBattery(item);
+        else if (item.itemId == "codegiver")
+            OpenPaper(item);
         else
             Debug.Log($"[Hotbar P{playerNumber}] Usar '{item.displayName}' (sem comportamento).");
     }
@@ -344,6 +351,14 @@ public class Hotbar : MonoBehaviour
         }
     }
 
+    private void OpenPaper(HotbarItem item)
+    {
+        Debug.Log($"[Hotbar P{playerNumber}] Abrir papel (item '{item.displayName}').");
+        GameObject rawImageObj = Instantiate(paperPrefab);
+        Canvas parente = canvas != null ? canvas : hotbarCanvas;
+        if (parente != null) rawImageObj.transform.SetParent(parente.transform, false);
+    }
+
     private static Sprite crosshairCircle;
 
     /// <summary>Círculo branco anti-aliased; sem sprite o Image desenhava um quadrado.</summary>
@@ -382,24 +397,24 @@ public class Hotbar : MonoBehaviour
         for (int i = 0; i < slotCount; i++)
         {
             HotbarItem item = items[i];
-            if (spriteSelecionado != null)
-            {
-                slotBackgrounds[i].sprite = i == SelectedIndex ? spriteSelecionado : (item == null ? spriteVazio : spriteItem);
-                slotBackgrounds[i].color = Color.white;
-            }
-            else
-            {
-                slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
-            }
+            slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
 
             if (item != null && item.icon != null)
             {
                 slotIcons[i].enabled = true;
                 slotIcons[i].sprite = item.icon;
+                slotLabels[i].text = $"{i + 1}";
+            }
+            else if (item != null)
+            {
+                slotIcons[i].enabled = false;
+                string initial = string.IsNullOrEmpty(item.displayName) ? "?" : item.displayName.Substring(0, 1).ToUpper();
+                slotLabels[i].text = $"{i + 1}\n{initial}";
             }
             else
             {
                 slotIcons[i].enabled = false;
+                slotLabels[i].text = $"{i + 1}";
             }
         }
     }
