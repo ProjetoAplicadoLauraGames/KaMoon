@@ -62,3 +62,23 @@ public struct EstadoPartidaMessage : NetworkMessage
     public bool caboResolvido;
     public bool derrota;
 }
+
+/// <summary>
+/// Frame de voz do próprio cliente (cliente -> servidor).
+/// PCM mono 16 kHz, 16 bits com sinal, little-endian. Vai no canal não fiável
+/// em blocos de poucos milissegundos: perder um frame é preferível a atrasar a voz.
+/// </summary>
+public struct VozJogadorMessage : NetworkMessage
+{
+    public byte[] pcm;
+}
+
+/// <summary>
+/// Frame de voz reencaminhado pelo servidor para os restantes jogadores.
+/// O servidor preenche <see cref="sala"/>; o cliente nunca decide quem fala.
+/// </summary>
+public struct VozRemotaMessage : NetworkMessage
+{
+    public byte sala;
+    public byte[] pcm;
+}
