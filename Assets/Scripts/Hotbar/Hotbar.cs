@@ -47,53 +47,35 @@ public class Hotbar : MonoBehaviour
     public Sprite spriteVazio;
     public Sprite spriteItem;
     public Sprite spriteSelecionado;
-    public Image chargeFill;
 
     public int SelectedIndex { get; private set; }
 
     /// <summary>Número do jogador dono desta hotbar (1 = esquerda/teclado, 2 = direita/comando).</summary>
     public int PlayerNumber => playerNumber;
-    public int SlotCount => slotCount;
-    public float SlotSize => slotSize;
-    public float SlotSpacing => slotSpacing;
-    public int SlotSpacingAsInt => Mathf.RoundToInt(slotSpacing);
-    public Color EmptyColor => emptyColor;
-
-    public void AplicarMedidas()
-    {
-        slotSize = 72f;
-        slotSpacing = 10f;
-    }
-
-    /// <summary>Aplica a paleta canónica do jogo aos valores serializados (o builder chama isto).</summary>
-    public void AplicarPaleta()
-    {
-        emptyColor = new Color(0.06f, 0.12f, 0.13f, 0.95f);
-        itemColor = new Color(0.08f, 0.17f, 0.18f, 0.98f);
-        selectedColor = new Color(0.65f, 0.4f, 0.16f, 0.98f);
-    }
-
     private GestorLanternas lanternManager;
-    private Battery playerBattery;
+    private bool ativa = true;
 
     private void Awake()
     {
-        if (GameSession.multiplayer && playerNumber == GameSession.room)
+        // Em multiplayer so existe um jogador nesta sessao: esconde e desativa a hotbar alheia.
+        ativa = !GameSession.multiplayer || playerNumber == GameSession.room;
+        if (!ativa)
         {
-            useKeyboard = true;
+            useKeyboard = false;
+            useGamepad = false;
+            if (hotbarCanvas != null) hotbarCanvas.gameObject.SetActive(false);
+            return;
         }
+
+        if (GameSession.multiplayer) useKeyboard = true;
+        if (hotbarCanvas != null && !hotbarCanvas.gameObject.activeSelf) hotbarCanvas.gameObject.SetActive(true);
         if (useKeyP1 == Key.F) useKeyP1 = Key.G;
         NormalizeItems();
         lanternManager = FindFirstObjectByType<GestorLanternas>();
-        playerBattery = FindPlayerBattery();
-
-        // Em multiplayer so existe um jogador nesta sessao: a hotbar e a do dono do ecra.
-        if (GameSession.multiplayer && playerNumber != GameSession.room)
-            return;
 
         if (!LigarUI())
         {
-            Debug.LogError($"[Hotbar P{playerNumber}] Canvas da hotbar em falta na cena. Corre Tools → KaMoon → Build Hotbar Canvas.", this);
+            Debug.LogError($"[Hotbar P{playerNumber}] Canvas da hotbar em falta na cena. Cria a hierarquia no Editor.", this);
             return;
         }
 
@@ -148,18 +130,11 @@ public class Hotbar : MonoBehaviour
 
     private void Update()
     {
+        if (!ativa) return;
         if (useKeyboard)
             HandleKeyboard();
         if (useGamepad)
             HandleGamepad();
-
-        AtualizarCarga();
-    }
-
-    private void AtualizarCarga()
-    {
-        if (chargeFill != null)
-            chargeFill.fillAmount = playerBattery != null ? Mathf.Clamp01(playerBattery.Charge) : 0f;
     }
 
     private void HandleKeyboard()

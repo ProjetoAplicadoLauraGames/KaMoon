@@ -102,4 +102,6 @@ Estado final:
 - Canvas na cena, âncoras/input/crosshair intactos. O campo `chargeFill` ficou no `Hotbar.cs` mas sem objeto ligado (`AtualizarCarga()` ignora referências nulas).
 - As secções anteriores deste documento são históricas; esta é a direção efetiva.
 
-Os sprites antigos (`slot-frame`, `warning-stripe`, `panel-plate`) deixaram de ser usados pelo builder, mas os ficheiros foram mantidos para não regenerar GUIDs sem necessidade.
+Os sprites antigos (`slot-frame`, `warning-stripe`, `panel-plate`) deixaram de ser usados, mas os ficheiros foram mantidos para não regenerar GUIDs sem necessidade.
+
+**Nota final (branch `fix/hotbar`):** a pedido do utilizador, a hotbar passou a ser **100% montada no Editor**: os geradores `HotbarArt.cs` e `HotbarBuilder.cs` foram removidos; os `HotbarCanvasP1/P2` e os sprites existem como assets/objetos normais na cena. O `Hotbar.cs` mantém só o comportamento em jogo, incluindo esconder/desativar a hotbar alheia em multiplayer.
