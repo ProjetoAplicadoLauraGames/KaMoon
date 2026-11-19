@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -8,12 +9,19 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class GameTimer : MonoBehaviour
 {
-    [Header("Relogio")]
-    [SerializeField, Min(600f)] private float tempoInicial = 600f; // 10 minutos no minimo
+    private const float LimiteAlerta = 60f;
+
+    [Header("Relogio (segundos)")]
+    [SerializeField, Min(1f)] private float tempoInicial = 600f;
 
     [Header("Resultado dos puzzles (segundos)")]
     [SerializeField] private float penalidadeErro = 20f;
     [SerializeField] private float recompensaAcerto = 20f;
+
+    [Header("Alerta no ultimo minuto")]
+    [SerializeField] private Color corAlerta = new Color(1f, 0.2f, 0.2f);
+    [Tooltip("Pulsos por segundo."), SerializeField, Min(0.1f)] private float velocidadePulso = 1.2f;
+    [Tooltip("Escala maxima do texto no ponto do pulso."), SerializeField, Min(1f)] private float escalaMaxima = 1.08f;
 
     private static GameTimer instancia;
 
@@ -22,7 +30,28 @@ public class GameTimer : MonoBehaviour
     public static float RecompensaAcerto => instancia != null ? instancia.recompensaAcerto : 20f;
 
     public static float TempoRestante { get; private set; } = 600f;
-    public static bool EmAlerta => TempoRestante > 0f && TempoRestante <= 60f;
+    public static bool EmAlerta => TempoRestante > 0f && TempoRestante <= LimiteAlerta;
+
+    /// <summary>Pulso suave de cor e escala, aplicado pelos ecras do relogio.</summary>
+    public static void AplicarAlerta(TMP_Text texto, Color corNormal, Vector3 escalaNormal)
+    {
+        if (texto == null) return;
+
+        if (!EmAlerta)
+        {
+            texto.color = corNormal;
+            texto.rectTransform.localScale = escalaNormal;
+            return;
+        }
+
+        float pulso = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * VelocidadePulso * Mathf.PI * 2f);
+        texto.color = Color.Lerp(corNormal, CorAlerta, pulso);
+        texto.rectTransform.localScale = escalaNormal * Mathf.Lerp(1f, EscalaMaxima, pulso);
+    }
+
+    private static Color CorAlerta => instancia != null ? instancia.corAlerta : new Color(1f, 0.2f, 0.2f);
+    private static float VelocidadePulso => instancia != null ? instancia.velocidadePulso : 1.2f;
+    private static float EscalaMaxima => instancia != null ? instancia.escalaMaxima : 1.08f;
 
     private bool terminado;
 
