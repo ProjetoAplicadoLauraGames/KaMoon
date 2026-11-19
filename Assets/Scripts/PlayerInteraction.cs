@@ -17,6 +17,15 @@ public class PlayerInteraction : MonoBehaviour
 
     [HideInInspector] public bool emPuzzle = false;
 
+    private void Awake()
+    {
+        // Em rede os dois jogadores partilham o mesmo esquema de teclado (E para
+        // interagir). Os prefabs nao serializam estes campos e o default era so
+        // comando, por isso o E nao funcionava nas maquinas dos clientes.
+        if (GameSession.multiplayer)
+            usarTeclado = true;
+    }
+
     void Update()
     {
         // Se n�o tiver c�mara associada ou estiver dentro de um puzzle, desliga o ponto e ignora
