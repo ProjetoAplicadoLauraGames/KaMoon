@@ -397,24 +397,24 @@ public class Hotbar : MonoBehaviour
         for (int i = 0; i < slotCount; i++)
         {
             HotbarItem item = items[i];
-            slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
+            if (spriteSelecionado != null)
+            {
+                slotBackgrounds[i].sprite = i == SelectedIndex ? spriteSelecionado : (item == null ? spriteVazio : spriteItem);
+                slotBackgrounds[i].color = Color.white;
+            }
+            else
+            {
+                slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
+            }
 
             if (item != null && item.icon != null)
             {
                 slotIcons[i].enabled = true;
                 slotIcons[i].sprite = item.icon;
-                slotLabels[i].text = $"{i + 1}";
-            }
-            else if (item != null)
-            {
-                slotIcons[i].enabled = false;
-                string initial = string.IsNullOrEmpty(item.displayName) ? "?" : item.displayName.Substring(0, 1).ToUpper();
-                slotLabels[i].text = $"{i + 1}\n{initial}";
             }
             else
             {
                 slotIcons[i].enabled = false;
-                slotLabels[i].text = $"{i + 1}";
             }
         }
     }
