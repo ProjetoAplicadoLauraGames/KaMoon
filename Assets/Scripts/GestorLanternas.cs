@@ -10,6 +10,21 @@ public class GestorLanternas : MonoBehaviour
     [Header("Configuracao Inicial")]
     public bool p1ComecaLigado = true;
 
+    /// <summary>
+    /// Regra da sala: so quem tem a propria lanterna ligada pode interagir.
+    /// Em rede o dono e decidido pelo servidor (NetMatch.LanternaDono).
+    /// </summary>
+    public static bool LanternaLigada(int jogador)
+    {
+        if (NetMatch.EmPartida) return NetMatch.LanternaDono == jogador;
+
+        GestorLanternas gestor = FindFirstObjectByType<GestorLanternas>();
+        if (gestor == null) return true; // sem gestor na cena, mantem comportamento antigo
+
+        Light luz = jogador == 1 ? gestor.lanternaP1 : gestor.lanternaP2;
+        return luz != null && luz.enabled;
+    }
+
     void Start()
     {
         // Garante que apenas uma lanterna comeca ativa no arranque da cena
@@ -39,13 +54,14 @@ public class GestorLanternas : MonoBehaviour
     /// <summary>Pede ao servidor para alternar a lanterna deste jogador (rede).</summary>
     private void VerificarInputRede()
     {
-        if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        // Cada cliente so controla a lanterna do seu proprio jogador.
+        if (GameSession.room == 1 && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
         {
             NetMatch.PedirLanterna();
             return;
         }
 
-        if (Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame)
+        if (GameSession.room == 2 && Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame)
             NetMatch.PedirLanterna();
     }
 
@@ -102,17 +118,19 @@ public class GestorLanternas : MonoBehaviour
             }
         }
 
-        if (numeroJogador == 1)
+        Light propria = numeroJogador == 1 ? lanternaP1 : lanternaP2;
+        Light outra = numeroJogador == 1 ? lanternaP2 : lanternaP1;
+
+        // Cada jogador liga e desliga a sua: ao desligar ficam as duas apagadas.
+        if (propria.enabled)
         {
-            lanternaP1.enabled = true;
-            lanternaP2.enabled = false;
-            Debug.Log("<color=cyan>[LANTERNA]</color> Player 1 (Teclado) ligou a lanterna.");
+            propria.enabled = false;
+            Debug.Log($"<color=yellow>[LANTERNA]</color> Player {numeroJogador} desligou a lanterna.");
+            return;
         }
-        else if (numeroJogador == 2)
-        {
-            lanternaP1.enabled = false;
-            lanternaP2.enabled = true;
-            Debug.Log("<color=green>[LANTERNA]</color> Player 2 (Comando) ligou a lanterna.");
-        }
+
+        propria.enabled = true;
+        outra.enabled = false;
+        Debug.Log($"<color=cyan>[LANTERNA]</color> Player {numeroJogador} ligou a lanterna.");
     }
 }

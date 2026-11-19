@@ -13,6 +13,7 @@ public enum NetAcao : byte
     CaboFisico = 4,
     Reabastecer = 5,
     ApanharItem = 6,
+    AjustarTempo = 7, // tempo = delta em segundos (negativo = penalidade)
 }
 
 /// <summary>Pose do avatar do próprio cliente (cliente -> servidor), 20 Hz.</summary>
@@ -41,6 +42,7 @@ public struct AcaoJogadorMessage : NetworkMessage
     public NetAcao acao;
     public int indice;
     public string texto;
+    public float tempo;
 }
 
 /// <summary>Objeto consumido/removido na partida (servidor -> clientes).</summary>

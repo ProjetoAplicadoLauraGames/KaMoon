@@ -179,6 +179,7 @@ public class NetMatch : MonoBehaviour
                 estadoSujo = true;
             }
         }
+        TempoRestante = tempo;
 
         for (int i = 0; i < 2; i++)
         {
@@ -242,20 +243,19 @@ public class NetMatch : MonoBehaviour
 
             case NetAcao.Keypad:
                 if (keypadResolvido || derrota) return;
+                // O erro so custa tempo (aplicado pelo GameTimer); nao detona.
                 if (CodigoKeypad() == msg.texto) keypadResolvido = true;
-                else derrota = true;
                 estadoSujo = true;
                 return;
 
             case NetAcao.Cabo:
                 if (caboResolvido || derrota) return;
                 if (msg.indice == IndiceCaboCorreto()) caboResolvido = true;
-                else derrota = true;
                 estadoSujo = true;
                 return;
 
             case NetAcao.CaboFisico:
-                if (derrota) return;
+                if (derrota || lanternaDono != sala) return;
                 ProcessarCaboFisico(msg.texto);
                 return;
 
@@ -265,7 +265,12 @@ public class NetMatch : MonoBehaviour
                 return;
 
             case NetAcao.ApanharItem:
+                if (lanternaDono != sala) return;
                 RemoverObjeto(msg.texto);
+                return;
+
+            case NetAcao.AjustarTempo:
+                AplicarDeltaTempo(msg.tempo);
                 return;
         }
     }
@@ -277,15 +282,19 @@ public class NetMatch : MonoBehaviour
         GameObject cabo = GameObject.Find(nome);
         if (cabo == null) return;
 
-        if (cabo.CompareTag("WrongCable"))
-        {
-            derrota = true;
-            estadoSujo = true;
-            return;
-        }
-
+        // Cabo errado nao detona diretamente: o erro ja custou tempo no GameTimer.
         if (!cabo.CompareTag("CorrectCable")) return;
         RemoverObjeto(nome);
+    }
+
+    /// <summary>Penalizacao/recompensa decidida no servidor com a config do GameTimer.</summary>
+    private void AplicarDeltaTempo(float delta)
+    {
+        if (derrota || delta == 0f) return;
+        tempo = Mathf.Clamp(tempo + delta, 0f, GameTimer.TempoInicial);
+        TempoRestante = tempo;
+        if (tempo <= 0f) derrota = true;
+        estadoSujo = true;
     }
 
     /// <summary>Remove o objeto na partida inteira (cabos cortados, itens apanhados).</summary>
@@ -431,6 +440,10 @@ public class NetMatch : MonoBehaviour
     public static void PedirItem(string nome)
         => Enviar(new AcaoJogadorMessage { acao = NetAcao.ApanharItem, texto = nome ?? string.Empty });
 
+    /// <summary>Delta em segundos (negativo = penalidade, positivo = recompensa).</summary>
+    public static void PedirAjusteTempo(float delta)
+        => Enviar(new AcaoJogadorMessage { acao = NetAcao.AjustarTempo, tempo = delta });
+
     private static void Enviar(AcaoJogadorMessage msg)
     {
         if (!EmPartida || !NetworkClient.active) return;
@@ -543,11 +556,7 @@ public class NetMatch : MonoBehaviour
         if (p2 != null) p2.enabled = dono == 2;
     }
 
-    private static float TempoInicial()
-    {
-        TimerScript timer = FindAnyObjectByType<TimerScript>();
-        return timer != null ? timer.startTime : 60f;
-    }
+    private static float TempoInicial() => GameTimer.TempoInicial;
 
     private static float DrenagemLanterna(int jogador)
     {
@@ -592,7 +601,7 @@ public class NetMatch : MonoBehaviour
 
     private static void ReporPartida()
     {
-        TempoRestante = 60f;
+        TempoRestante = GameTimer.TempoInicial;
         BateriaUm = 1f;
         BateriaDois = 1f;
         LanternaDono = 0;

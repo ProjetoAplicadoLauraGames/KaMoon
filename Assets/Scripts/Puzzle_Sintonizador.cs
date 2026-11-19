@@ -217,6 +217,7 @@ public class Puzzle_Sintonizador : MonoBehaviour, IInteragivel
 
     private void ConcluirPuzzle()
     {
+        GameTimer.RegistarAcerto();
         puzzleResolvido = true;
         MudarCorLinha(linhaAlvo, Color.green);
         MudarCorLinha(linhaJogador, Color.green);
