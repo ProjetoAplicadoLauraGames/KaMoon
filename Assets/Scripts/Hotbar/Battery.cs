@@ -28,6 +28,10 @@ public class Battery : MonoBehaviour
     [Tooltip("Barra de carga no canto do ecrã (útil no protótipo).")]
     [SerializeField] private bool showChargeBar = true;
 
+    [Header("Audio")]
+    private AudioSource audioSource;
+    [SerializeField] private AudioClip rechargeSound;
+
     /// <summary>Carga atual, 0 (vazia) a 1 (cheia).</summary>
     public float Charge { get; private set; } = 1f;
 
@@ -51,6 +55,12 @@ public class Battery : MonoBehaviour
         Charge = startFull ? 1f : 0f;
         lanternManager = FindFirstObjectByType<GestorLanternas>();
         voice = FindFirstObjectByType<LocalVoiceChat>();
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            Debug.LogWarning($"[Bateria P{playerNumber}] AudioSource adicionado automaticamente para tocar o som de recarga.");
+        }
     }
 
     /// <summary>Verdadeiro se a lanterna deste jogador está ligada.</summary>
@@ -129,6 +139,12 @@ public class Battery : MonoBehaviour
     {
         Charge = 1f;
         Debug.Log($"[Bateria P{playerNumber}] Recarregada.");
+        if (audioSource != null && rechargeSound != null)
+        {
+            audioSource.clip = rechargeSound;
+            audioSource.Play();
+            Debug.Log($"[Bateria P{playerNumber}] Som de recarga tocado.");
+        }
     }
 
     private void OnGUI()

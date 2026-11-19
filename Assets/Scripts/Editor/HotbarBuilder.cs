@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+/*#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -167,3 +167,4 @@ public static class HotbarBuilder
     }
 }
 #endif
+*/

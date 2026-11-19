@@ -39,6 +39,9 @@ public class CapsuleMovement : MonoBehaviour
     [SerializeField] private Animator animator;
     [Tooltip("Nome do parâmetro float de velocidade no Animator.")]
     [SerializeField] private string speedParam = "Speed";
+    
+    [Header("Sound]")]
+    [SerializeField] private AudioSource audioSource;
 
     private Rigidbody rb;
     private Collider bodyCollider;
