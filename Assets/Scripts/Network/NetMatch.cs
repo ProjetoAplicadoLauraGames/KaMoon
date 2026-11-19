@@ -22,6 +22,10 @@ public class NetMatch : MonoBehaviour
     private const float FrequenciaPose = 20f;
     private const float FrequenciaEstado = 10f;
 
+    // Um frame de voz tem no máximo 30 ms a 16 kHz (960 bytes). O limite abaixo
+    // rejeita payloads que não caberiam num datagrama do KCP.
+    private const int VozMaxBytes = 1000;
+
     public static NetMatch Instance { get; private set; }
 
     public static bool Ligado => NetworkServer.active || NetworkClient.active;
@@ -102,7 +106,9 @@ public class NetMatch : MonoBehaviour
 
         NetworkServer.RegisterHandler<PoseJogadorMessage>(OnPoseServidor);
         NetworkServer.RegisterHandler<AcaoJogadorMessage>(OnAcaoServidor);
+        NetworkServer.RegisterHandler<VozJogadorMessage>(OnVozJogadorServidor);
         NetworkClient.RegisterHandler<PoseRemotaMessage>(OnPoseRemota);
+        NetworkClient.RegisterHandler<VozRemotaMessage>(OnVozRemota);
         NetworkClient.RegisterHandler<EstadoPartidaMessage>(OnEstadoRecebido);
         NetworkClient.RegisterHandler<ObjetoRemovidoMessage>(OnObjetoRemovido);
     }
@@ -223,6 +229,34 @@ public class NetMatch : MonoBehaviour
             pitch = msg.pitch,
             velocidade = msg.velocidade
         }, Channels.Unreliable);
+    }
+
+    /// <summary>
+    /// Voz de um cliente. O servidor valida a sala e a bateria (sem bateria não há
+    /// voz) e reencaminha o PCM para os restantes jogadores, sem passar pelo cliente
+    /// que falou. Só o servidor atribui a sala, por isso um cliente não se pode
+    /// fazer passar pelo outro.
+    /// </summary>
+    private void OnVozJogadorServidor(NetworkConnectionToClient conn, VozJogadorMessage msg)
+    {
+        if (!partidaAtiva || derrota) return;
+        if (msg.pcm == null || msg.pcm.Length < 2 || msg.pcm.Length > VozMaxBytes) return;
+
+        int sala = SalaDoCliente(conn);
+        if (sala == 0 || bateria[sala - 1] <= 0f) return;
+
+        VozRemotaMessage voz = new VozRemotaMessage
+        {
+            sala = (byte)sala,
+            pcm = msg.pcm
+        };
+
+        // Unicast: o remetente não precisa de receber a própria voz de volta.
+        foreach (NetworkConnectionToClient outro in NetworkServer.connections.Values)
+        {
+            if (outro == null || outro == conn) continue;
+            outro.Send(voz, Channels.Unreliable);
+        }
     }
 
     private void OnAcaoServidor(NetworkConnectionToClient conn, AcaoJogadorMessage msg)
@@ -410,6 +444,17 @@ public class NetMatch : MonoBehaviour
 
         GameObject obj = GameObject.Find(msg.nome);
         if (obj != null) Destroy(obj);
+    }
+
+    /// <summary>Voz do outro jogador, já validada e reencaminhada pelo servidor.</summary>
+    private void OnVozRemota(VozRemotaMessage msg)
+    {
+        if (!EmPartida) return;
+        if (msg.sala == GameSession.room) return;   // eco da própria voz (host e servidor local)
+        if (msg.pcm == null || msg.pcm.Length < 2) return;
+
+        if (voz == null) voz = FindAnyObjectByType<LocalVoiceChat>();
+        if (voz != null) voz.ReceberVoz(msg.sala, msg.pcm);
     }
 
     // -------------------------------------------------------------- API pública
