@@ -179,6 +179,9 @@ public class Hotbar : MonoBehaviour
 
     private void TryPickup()
     {
+        // O item so pode ser apanhado se a lanterna deste jogador estiver ligada.
+        if (!GestorLanternas.LanternaLigada(playerNumber)) return;
+
         Camera camera = GetComponentInChildren<Camera>();
         if (camera == null || !camera.enabled) return;
 
@@ -215,12 +218,13 @@ public class Hotbar : MonoBehaviour
     }
 
     /// <summary>
-    /// Apanhar item: ocupa o primeiro slot vazio. Devolve false se a hotbar
-    /// estiver cheia ou o item já existir (sem duplicados no protótipo).
+    /// Apanhar item: ocupa o primeiro slot vazio. Baterias podem ocupar vários
+    /// slots; os restantes itens não se duplicam.
     /// </summary>
     public bool AddItem(HotbarItem item)
     {
-        if (item == null || HasItem(item.itemId)) return false;
+        if (item == null) return false;
+        if (item.itemId != "battery" && HasItem(item.itemId)) return false;
         for (int i = 0; i < slotCount; i++)
         {
             if (items[i] == null)

@@ -26,9 +26,6 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     [Header("Jogador (Player 2 - Comando)")]
     public Transform jogadorInterativo;
 
-    [Header("Detonação / Feedback")]
-    public GameOverManager gameOver;
-
     [Header("Tampa do Keypad")]
     public GameObject tampaKeypad;
     private bool tampaFora = false;
@@ -253,12 +250,18 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
 
         if (NetMatch.EmPartida)
         {
-            NetMatch.PedirKeypad(codigoAtual);
+            string enviado = codigoAtual;
+            if (enviado == codigoCorreto) GameTimer.RegistarAcerto();
+            else GameTimer.RegistarErro();
+            NetMatch.PedirKeypad(enviado);
+            codigoAtual = "";
+            AtualizarDisplay();
             return;
         }
 
         if (codigoAtual == codigoCorreto)
         {
+            GameTimer.RegistarAcerto();
             puzzleResolvido = true;
             if (textoDisplay != null) textoDisplay.text = "OK!";
             Debug.Log("<color=green>Código do Keypad correto!</color>");
@@ -266,10 +269,10 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
         }
         else
         {
+            GameTimer.RegistarErro();
             Debug.Log("<color=red>Código errado!</color>");
             codigoAtual = "";
             AtualizarDisplay();
-            if (gameOver != null) gameOver.GameOver();
         }
     }
 

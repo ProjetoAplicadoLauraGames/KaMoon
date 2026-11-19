@@ -22,6 +22,10 @@ public class NetMatch : MonoBehaviour
     private const float FrequenciaPose = 20f;
     private const float FrequenciaEstado = 10f;
 
+    // Um frame de voz tem no máximo 30 ms a 16 kHz (960 bytes). O limite abaixo
+    // rejeita payloads que não caberiam num datagrama do KCP.
+    private const int VozMaxBytes = 1000;
+
     public static NetMatch Instance { get; private set; }
 
     public static bool Ligado => NetworkServer.active || NetworkClient.active;
@@ -102,7 +106,9 @@ public class NetMatch : MonoBehaviour
 
         NetworkServer.RegisterHandler<PoseJogadorMessage>(OnPoseServidor);
         NetworkServer.RegisterHandler<AcaoJogadorMessage>(OnAcaoServidor);
+        NetworkServer.RegisterHandler<VozJogadorMessage>(OnVozJogadorServidor);
         NetworkClient.RegisterHandler<PoseRemotaMessage>(OnPoseRemota);
+        NetworkClient.RegisterHandler<VozRemotaMessage>(OnVozRemota);
         NetworkClient.RegisterHandler<EstadoPartidaMessage>(OnEstadoRecebido);
         NetworkClient.RegisterHandler<ObjetoRemovidoMessage>(OnObjetoRemovido);
     }
@@ -179,6 +185,7 @@ public class NetMatch : MonoBehaviour
                 estadoSujo = true;
             }
         }
+        TempoRestante = tempo;
 
         for (int i = 0; i < 2; i++)
         {
@@ -225,6 +232,34 @@ public class NetMatch : MonoBehaviour
         }, Channels.Unreliable);
     }
 
+    /// <summary>
+    /// Voz de um cliente. O servidor valida a sala e a bateria (sem bateria não há
+    /// voz) e reencaminha o PCM para os restantes jogadores, sem passar pelo cliente
+    /// que falou. Só o servidor atribui a sala, por isso um cliente não se pode
+    /// fazer passar pelo outro.
+    /// </summary>
+    private void OnVozJogadorServidor(NetworkConnectionToClient conn, VozJogadorMessage msg)
+    {
+        if (!partidaAtiva || derrota) return;
+        if (msg.pcm == null || msg.pcm.Length < 2 || msg.pcm.Length > VozMaxBytes) return;
+
+        int sala = SalaDoCliente(conn);
+        if (sala == 0 || bateria[sala - 1] <= 0f) return;
+
+        VozRemotaMessage voz = new VozRemotaMessage
+        {
+            sala = (byte)sala,
+            pcm = msg.pcm
+        };
+
+        // Unicast: o remetente não precisa de receber a própria voz de volta.
+        foreach (NetworkConnectionToClient outro in NetworkServer.connections.Values)
+        {
+            if (outro == null || outro == conn) continue;
+            outro.Send(voz, Channels.Unreliable);
+        }
+    }
+
     private void OnAcaoServidor(NetworkConnectionToClient conn, AcaoJogadorMessage msg)
     {
         if (!partidaAtiva) return;
@@ -242,20 +277,19 @@ public class NetMatch : MonoBehaviour
 
             case NetAcao.Keypad:
                 if (keypadResolvido || derrota) return;
+                // O erro so custa tempo (aplicado pelo GameTimer); nao detona.
                 if (CodigoKeypad() == msg.texto) keypadResolvido = true;
-                else derrota = true;
                 estadoSujo = true;
                 return;
 
             case NetAcao.Cabo:
                 if (caboResolvido || derrota) return;
                 if (msg.indice == IndiceCaboCorreto()) caboResolvido = true;
-                else derrota = true;
                 estadoSujo = true;
                 return;
 
             case NetAcao.CaboFisico:
-                if (derrota) return;
+                if (derrota || lanternaDono != sala) return;
                 ProcessarCaboFisico(msg.texto);
                 return;
 
@@ -265,7 +299,12 @@ public class NetMatch : MonoBehaviour
                 return;
 
             case NetAcao.ApanharItem:
+                if (lanternaDono != sala) return;
                 RemoverObjeto(msg.texto);
+                return;
+
+            case NetAcao.AjustarTempo:
+                AplicarDeltaTempo(msg.tempo);
                 return;
         }
     }
@@ -277,15 +316,19 @@ public class NetMatch : MonoBehaviour
         GameObject cabo = GameObject.Find(nome);
         if (cabo == null) return;
 
-        if (cabo.CompareTag("WrongCable"))
-        {
-            derrota = true;
-            estadoSujo = true;
-            return;
-        }
-
+        // Cabo errado nao detona diretamente: o erro ja custou tempo no GameTimer.
         if (!cabo.CompareTag("CorrectCable")) return;
         RemoverObjeto(nome);
+    }
+
+    /// <summary>Penalizacao/recompensa decidida no servidor com a config do GameTimer.</summary>
+    private void AplicarDeltaTempo(float delta)
+    {
+        if (derrota || delta == 0f) return;
+        tempo = Mathf.Clamp(tempo + delta, 0f, GameTimer.TempoInicial);
+        TempoRestante = tempo;
+        if (tempo <= 0f) derrota = true;
+        estadoSujo = true;
     }
 
     /// <summary>Remove o objeto na partida inteira (cabos cortados, itens apanhados).</summary>
@@ -412,6 +455,17 @@ public class NetMatch : MonoBehaviour
         if (obj != null) Destroy(obj);
     }
 
+    /// <summary>Voz do outro jogador, já validada e reencaminhada pelo servidor.</summary>
+    private void OnVozRemota(VozRemotaMessage msg)
+    {
+        if (!EmPartida) return;
+        if (msg.sala == GameSession.room) return;   // eco da própria voz (host e servidor local)
+        if (msg.pcm == null || msg.pcm.Length < 2) return;
+
+        if (voz == null) voz = FindAnyObjectByType<LocalVoiceChat>();
+        if (voz != null) voz.ReceberVoz(msg.sala, msg.pcm);
+    }
+
     // -------------------------------------------------------------- API pública
 
     public static void PedirLanterna() => Enviar(new AcaoJogadorMessage { acao = NetAcao.Lanterna });
@@ -430,6 +484,10 @@ public class NetMatch : MonoBehaviour
 
     public static void PedirItem(string nome)
         => Enviar(new AcaoJogadorMessage { acao = NetAcao.ApanharItem, texto = nome ?? string.Empty });
+
+    /// <summary>Delta em segundos (negativo = penalidade, positivo = recompensa).</summary>
+    public static void PedirAjusteTempo(float delta)
+        => Enviar(new AcaoJogadorMessage { acao = NetAcao.AjustarTempo, tempo = delta });
 
     private static void Enviar(AcaoJogadorMessage msg)
     {
@@ -543,11 +601,7 @@ public class NetMatch : MonoBehaviour
         if (p2 != null) p2.enabled = dono == 2;
     }
 
-    private static float TempoInicial()
-    {
-        TimerScript timer = FindAnyObjectByType<TimerScript>();
-        return timer != null ? timer.startTime : 60f;
-    }
+    private static float TempoInicial() => GameTimer.TempoInicial;
 
     private static float DrenagemLanterna(int jogador)
     {
@@ -592,7 +646,7 @@ public class NetMatch : MonoBehaviour
 
     private static void ReporPartida()
     {
-        TempoRestante = 60f;
+        TempoRestante = GameTimer.TempoInicial;
         BateriaUm = 1f;
         BateriaDois = 1f;
         LanternaDono = 0;
