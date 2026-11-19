@@ -6,8 +6,6 @@ public class GameHud : MonoBehaviour
 {
     public Image cargaP1;
     public Image cargaP2;
-    public Text textoP1;
-    public Text textoP2;
 
     private Battery bateriaP1;
     private Battery bateriaP2;
@@ -23,16 +21,17 @@ public class GameHud : MonoBehaviour
 
     private void Update()
     {
-        Atualizar(cargaP1, textoP1, bateriaP1, "P1");
-        Atualizar(cargaP2, textoP2, bateriaP2, "P2");
+        Atualizar(cargaP1, bateriaP1);
+        Atualizar(cargaP2, bateriaP2);
     }
 
-    private static void Atualizar(Image barra, Text texto, Battery bateria, string nome)
+    private static void Atualizar(Image barra, Battery bateria)
     {
-        if (bateria == null) return;
+        if (bateria == null || barra == null) return;
         float carga = Mathf.Clamp01(bateria.Charge);
-        if (barra != null) barra.fillAmount = carga;
-        if (texto != null)
-            texto.text = carga <= 0.15f ? nome + " · 0%" : nome + " · " + Mathf.RoundToInt(carga * 100f) + "%";
+        barra.fillAmount = carga;
+        barra.color = carga <= 0.15f
+            ? new Color(1f, 0.25f, 0.25f)
+            : new Color(0.9f, 0.6f, 0.25f);
     }
 }
