@@ -15,15 +15,22 @@ public class PlayerInteraction : MonoBehaviour
     public bool usarComando = true;
     public bool usarTeclado = false;
 
-    [Header("Compatibilidade Cabos (Opcional)")]
-    public GameOverManager gameOver;
-
     [HideInInspector] public bool emPuzzle = false;
 
     void Update()
     {
         // Se n�o tiver c�mara associada ou estiver dentro de um puzzle, desliga o ponto e ignora
         if (InteractorSource == null || emPuzzle)
+        {
+            if (dot != null && dot.activeSelf) dot.SetActive(false);
+            return;
+        }
+
+        // Sem lanterna nao ha interacao com a sala (o dot tambem nao acende).
+        Battery bateria = GetComponentInParent<Battery>();
+        int jogador = NetMatch.EmPartida ? GameSession.room
+                    : (bateria != null ? bateria.PlayerNumber : (transform.root.name.EndsWith("2") ? 2 : 1));
+        if (!GestorLanternas.LanternaLigada(jogador))
         {
             if (dot != null && dot.activeSelf) dot.SetActive(false);
             return;
@@ -51,6 +58,9 @@ public class PlayerInteraction : MonoBehaviour
                     }
                     else if (eCabo)
                     {
+                        if (hit.collider.CompareTag("CorrectCable")) GameTimer.RegistarAcerto();
+                        else GameTimer.RegistarErro();
+
                         if (NetMatch.EmPartida)
                             NetMatch.PedirCaboFisico(hit.collider.gameObject.name);
                         else
@@ -85,15 +95,7 @@ public class PlayerInteraction : MonoBehaviour
 
     private void ProcessarCabo(GameObject cabo)
     {
-        if (cabo.CompareTag("WrongCable"))
-        {
-            Debug.Log("Wrong cable cut!");
-            if (gameOver != null) gameOver.GameOver();
-        }
-        else if (cabo.CompareTag("CorrectCable"))
-        {
-            Debug.Log("Correct cable cut!");
-        }
+        Debug.Log(cabo.CompareTag("CorrectCable") ? "Correct cable cut!" : "Wrong cable cut!");
         Destroy(cabo);
     }
 

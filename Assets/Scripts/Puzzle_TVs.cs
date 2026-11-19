@@ -195,6 +195,7 @@ public class Puzzle_SequenciaTVs : MonoBehaviour, IInteragivel
 
     private IEnumerator FalharEReiniciar()
     {
+        GameTimer.RegistarErro();
         aMostrarSequencia = true;
         if (audioSource != null && somErro != null) audioSource.PlayOneShot(somErro);
 
@@ -206,6 +207,7 @@ public class Puzzle_SequenciaTVs : MonoBehaviour, IInteragivel
 
     private IEnumerator FinalizarComSucesso()
     {
+        GameTimer.RegistarAcerto();
         puzzleResolvido = true;
         if (audioSource != null && somAcerto != null) audioSource.PlayOneShot(somAcerto);
 

@@ -179,6 +179,9 @@ public class Hotbar : MonoBehaviour
 
     private void TryPickup()
     {
+        // O item so pode ser apanhado se a lanterna deste jogador estiver ligada.
+        if (!GestorLanternas.LanternaLigada(playerNumber)) return;
+
         Camera camera = GetComponentInChildren<Camera>();
         if (camera == null || !camera.enabled) return;
 

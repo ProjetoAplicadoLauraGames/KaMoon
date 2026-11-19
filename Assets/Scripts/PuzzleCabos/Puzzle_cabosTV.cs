@@ -21,9 +21,6 @@ public class PuzzleCabosTV : MonoBehaviour
     public float distanciaInteracao = 4f;
     public Transform jogadorP2;
 
-    [Header("Detonacao (Opcional)")]
-    public GameOverManager gameOver;
-
     private bool moduloResolvido = false;
 
     void Start()
@@ -47,6 +44,7 @@ public class PuzzleCabosTV : MonoBehaviour
         if (NetMatch.EmPartida) AplicarEstadoRede();
 
         if (moduloResolvido || jogadorP2 == null) return;
+        if (!GestorLanternas.LanternaLigada(NetMatch.EmPartida ? GameSession.room : 2)) return;
 
         float dist = Vector3.Distance(transform.position, jogadorP2.position);
 
@@ -90,9 +88,11 @@ public class PuzzleCabosTV : MonoBehaviour
 
     public void CortarCabo(int index)
     {
-        // Em rede o servidor decide se o cabo esta certo.
+        // Em rede o servidor decide se o cabo esta certo; o tempo e ajustado aqui.
         if (NetMatch.EmPartida)
         {
+            if (index == indiceCaboCorreto) GameTimer.RegistarAcerto();
+            else GameTimer.RegistarErro();
             if (cabos[index] != null) cabos[index].interactable = false;
             NetMatch.PedirCabo(index);
             return;
@@ -102,14 +102,15 @@ public class PuzzleCabosTV : MonoBehaviour
 
         if (index == indiceCaboCorreto)
         {
+            GameTimer.RegistarAcerto();
             Debug.Log("<color=green>[PUZZLE]</color> Modulo Desativado!");
             moduloResolvido = true;
             Invoke(nameof(FecharPuzzle), 1.0f);
         }
         else
         {
+            GameTimer.RegistarErro();
             Debug.Log("<color=red>[PUZZLE]</color> Cabo Errado!");
-            gameOver.GameOver();
             FecharPuzzle();
         }
     }

@@ -165,6 +165,7 @@ public class PuzzleEstante3D : MonoBehaviour
 
         if (indice == indiceLivroCorreto)
         {
+            GameTimer.RegistarAcerto();
             resolvido = true;
             Debug.Log("<color=green>LIVRO AZUL ACIONADO!</color>");
 
@@ -187,6 +188,7 @@ public class PuzzleEstante3D : MonoBehaviour
         }
         else
         {
+            GameTimer.RegistarErro();
             if (audioSource != null && somErro != null)
                 audioSource.PlayOneShot(somErro);
 
