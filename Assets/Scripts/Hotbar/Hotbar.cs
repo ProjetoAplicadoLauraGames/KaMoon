@@ -3,8 +3,9 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// Hotbar por jogador. A barra é um Canvas guardado na cena (Tools → KaMoon → Build Hotbar Canvas);
-/// em runtime este script só atualiza os slots e ajusta as âncoras ao modo de jogo.
+/// Hotbar por jogador (task #21). Não precisa de setup na cena:
+/// constrói a sua barra (UGUI) em runtime, metade esquerda (P1)
+/// ou direita (P2) para funcionar em splitscreen.
 /// P1: teclas 1-4 escolhem slot, G usa. P2: d-pad esq/dir muda,
 /// R3 usa. Slot 0 é a lanterna por defeito.
 /// </summary>
@@ -28,53 +29,27 @@ public class Hotbar : MonoBehaviour
     [Tooltip("Spotlight própria. Se houver GestorLanternas na cena, ele tem prioridade.")]
     [SerializeField] private Light flashlight;
 
+    [Header("Papel (item \"paper\")")]
+    [SerializeField] private GameObject paperPrefab;
+    [SerializeField] private Canvas canvas;
+
+
     [Header("Visual dos slots")]
     [SerializeField] private float slotSize = 64f;
     [SerializeField] private float slotSpacing = 8f;
-    [SerializeField] private Color emptyColor = new Color(0.06f, 0.12f, 0.13f, 0.95f);
-    [SerializeField] private Color itemColor = new Color(0.08f, 0.17f, 0.18f, 0.98f);
-    [SerializeField] private Color selectedColor = new Color(0.65f, 0.4f, 0.16f, 0.98f);
-
-    [Header("UI guardada na cena")]
-    public Canvas hotbarCanvas;
-    public RectTransform bar;
-    public Image[] slotBackgrounds;
-    public Text[] slotLabels;
-    public Image[] slotIcons;
-    public RectTransform crosshair;
-    public Image crosshairOutline;
-    public Image crosshairDot;
-    public Sprite spriteVazio;
-    public Sprite spriteItem;
-    public Sprite spriteSelecionado;
-    public Image chargeFill;
+    [SerializeField] private Color emptyColor = new Color(0f, 0f, 0f, 0.45f);
+    [SerializeField] private Color itemColor = new Color(0.15f, 0.15f, 0.2f, 0.75f);
+    [SerializeField] private Color selectedColor = new Color(1f, 0.85f, 0.2f, 0.95f);
 
     public int SelectedIndex { get; private set; }
 
     /// <summary>Número do jogador dono desta hotbar (1 = esquerda/teclado, 2 = direita/comando).</summary>
     public int PlayerNumber => playerNumber;
-    public int SlotCount => slotCount;
-    public float SlotSize => slotSize;
-    public float SlotSpacing => slotSpacing;
-    public int SlotSpacingAsInt => Mathf.RoundToInt(slotSpacing);
-    public Color EmptyColor => emptyColor;
 
-    public void AplicarMedidas()
-    {
-        slotSize = 72f;
-        slotSpacing = 10f;
-    }
-
-    /// <summary>Aplica a paleta canónica do jogo aos valores serializados (o builder chama isto).</summary>
-    public void AplicarPaleta()
-    {
-        emptyColor = new Color(0.06f, 0.12f, 0.13f, 0.95f);
-        itemColor = new Color(0.08f, 0.17f, 0.18f, 0.98f);
-        selectedColor = new Color(0.65f, 0.4f, 0.16f, 0.98f);
-    }
-
+    private Image[] slotBackgrounds;
+    private Text[] slotLabels;
+    private Image[] slotIcons;
     private GestorLanternas lanternManager;
-    private Battery playerBattery;
 
     private void Awake()
     {
@@ -85,50 +60,13 @@ public class Hotbar : MonoBehaviour
         if (useKeyP1 == Key.F) useKeyP1 = Key.G;
         NormalizeItems();
         lanternManager = FindFirstObjectByType<GestorLanternas>();
-        playerBattery = FindPlayerBattery();
 
         // Em multiplayer so existe um jogador nesta sessao: a hotbar e a do dono do ecra.
         if (GameSession.multiplayer && playerNumber != GameSession.room)
             return;
 
-        if (!LigarUI())
-        {
-            Debug.LogError($"[Hotbar P{playerNumber}] Canvas da hotbar em falta na cena. Corre Tools → KaMoon → Build Hotbar Canvas.", this);
-            return;
-        }
-
-        AjustarAncoras();
+        BuildUI();
         RefreshUI();
-    }
-
-    /// <summary>Usa a hierarquia guardada na cena; não cria nada em runtime.</summary>
-    private bool LigarUI()
-    {
-        return hotbarCanvas != null && bar != null && slotBackgrounds != null &&
-               slotIcons != null && crosshair != null &&
-               crosshairOutline != null && crosshairDot != null &&
-               slotBackgrounds.Length == slotCount &&
-               slotIcons.Length == slotCount;
-    }
-
-    private void AjustarAncoras()
-    {
-        float minX = 0f;
-        float maxX = 1f;
-        if (!GameSession.multiplayer)
-        {
-            if (playerNumber == 1) maxX = 0.5f;
-            else minX = 0.5f;
-        }
-
-        bar.anchorMin = new Vector2(minX, 0f);
-        bar.anchorMax = new Vector2(maxX, 0f);
-        crosshair.anchorMin = new Vector2(minX, 0f);
-        crosshair.anchorMax = new Vector2(maxX, 1f);
-
-        Sprite circulo = CrosshairCircle();
-        crosshairOutline.sprite = circulo;
-        crosshairDot.sprite = circulo;
     }
 
     private void NormalizeItems()
@@ -152,14 +90,6 @@ public class Hotbar : MonoBehaviour
             HandleKeyboard();
         if (useGamepad)
             HandleGamepad();
-
-        AtualizarCarga();
-    }
-
-    private void AtualizarCarga()
-    {
-        if (chargeFill != null)
-            chargeFill.fillAmount = playerBattery != null ? Mathf.Clamp01(playerBattery.Charge) : 0f;
     }
 
     private void HandleKeyboard()
@@ -293,6 +223,8 @@ public class Hotbar : MonoBehaviour
             UseFlashlight(item);
         else if (item.itemId == "battery")
             UseBattery(item);
+        else if (item.itemId == "codegiver")
+            OpenPaper(item);
         else
             Debug.Log($"[Hotbar P{playerNumber}] Usar '{item.displayName}' (sem comportamento).");
     }
@@ -369,6 +301,127 @@ public class Hotbar : MonoBehaviour
         }
     }
 
+    private void OpenPaper(HotbarItem item)
+    {
+        Debug.Log($"[Hotbar P{playerNumber}] Abrir papel (item '{item.displayName}').");
+        GameObject rawImageObj = Instantiate(paperPrefab);
+        rawImageObj.transform.SetParent(canvas.transform, false);
+    }
+
+    private void BuildUI()
+    {
+        GameObject canvasObj = new GameObject($"HotbarCanvasP{playerNumber}");
+        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
+
+        GameObject barObj = new GameObject("Bar");
+        barObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform bar = barObj.AddComponent<RectTransform>();
+
+        // Metade do ecrã correspondente ao jogador (splitscreen vertical);
+        // em multiplayer ha um só ecrã, por isso a barra ocupa a largura toda.
+        Vector2 anchorMin = new Vector2(0f, 0f);
+        Vector2 anchorMax = new Vector2(1f, 0f);
+        if (!GameSession.multiplayer)
+        {
+            if (playerNumber == 1) anchorMax.x = 0.5f;
+            else anchorMin.x = 0.5f;
+        }
+        bar.anchorMin = anchorMin;
+        bar.anchorMax = anchorMax;
+        bar.pivot = new Vector2(0.5f, 0f);
+        bar.anchoredPosition = new Vector2(0f, 16f);
+        bar.sizeDelta = new Vector2(slotCount * (slotSize + slotSpacing), slotSize + 16f);
+        BuildCrosshair(canvasObj.transform, anchorMin.x, anchorMax.x);
+
+        HorizontalLayoutGroup layout = barObj.AddComponent<HorizontalLayoutGroup>();
+        layout.spacing = slotSpacing;
+        layout.padding = new RectOffset(8, 8, 8, 8);
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        slotBackgrounds = new Image[slotCount];
+        slotLabels = new Text[slotCount];
+        slotIcons = new Image[slotCount];
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            GameObject slot = new GameObject($"Slot{i + 1}");
+            slot.transform.SetParent(bar, false);
+            RectTransform slotRect = slot.AddComponent<RectTransform>();
+            slotRect.sizeDelta = new Vector2(slotSize, slotSize);
+
+            Image bg = slot.AddComponent<Image>();
+            bg.color = emptyColor;
+            slotBackgrounds[i] = bg;
+
+            GameObject labelObj = new GameObject("Label");
+            labelObj.transform.SetParent(slot.transform, false);
+            RectTransform labelRect = labelObj.AddComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+
+            Text label = labelObj.AddComponent<Text>();
+            label.font = font;
+            label.fontSize = 20;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            slotLabels[i] = label;
+
+            GameObject iconObj = new GameObject("Icon");
+            iconObj.transform.SetParent(slot.transform, false);
+            RectTransform iconRect = iconObj.AddComponent<RectTransform>();
+            iconRect.anchorMin = Vector2.zero;
+            iconRect.anchorMax = Vector2.one;
+            iconRect.offsetMin = new Vector2(6f, 6f);
+            iconRect.offsetMax = new Vector2(-6f, -6f);
+
+            Image icon = iconObj.AddComponent<Image>();
+            icon.enabled = false;
+            icon.preserveAspect = true;
+            slotIcons[i] = icon;
+        }
+    }
+
+    /// <summary>Ponto de mira no centro da vista deste jogador.</summary>
+    private void BuildCrosshair(Transform parent, float minX, float maxX)
+    {
+        GameObject root = new GameObject("Crosshair");
+        root.transform.SetParent(parent, false);
+        RectTransform rect = root.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(minX, 0f);
+        rect.anchorMax = new Vector2(maxX, 1f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        // Contorno escuro para o ponto continuar legível em paredes claras.
+        AddCrosshairDot("Outline", rect, 8f, new Color(0f, 0f, 0f, 0.55f));
+        AddCrosshairDot("Dot", rect, 4f, new Color(1f, 1f, 1f, 0.9f));
+    }
+
+    private static void AddCrosshairDot(string name, Transform parent, float size, Color color)
+    {
+        GameObject obj = new GameObject(name);
+        obj.transform.SetParent(parent, false);
+        RectTransform rect = obj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(size, size);
+
+        Image image = obj.AddComponent<Image>();
+        image.sprite = CrosshairCircle();
+        image.color = color;
+        image.raycastTarget = false;
+    }
+
     private static Sprite crosshairCircle;
 
     /// <summary>Círculo branco anti-aliased; sem sprite o Image desenhava um quadrado.</summary>
@@ -407,24 +460,24 @@ public class Hotbar : MonoBehaviour
         for (int i = 0; i < slotCount; i++)
         {
             HotbarItem item = items[i];
-            if (spriteSelecionado != null)
-            {
-                slotBackgrounds[i].sprite = i == SelectedIndex ? spriteSelecionado : (item == null ? spriteVazio : spriteItem);
-                slotBackgrounds[i].color = Color.white;
-            }
-            else
-            {
-                slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
-            }
+            slotBackgrounds[i].color = i == SelectedIndex ? selectedColor : (item == null ? emptyColor : itemColor);
 
             if (item != null && item.icon != null)
             {
                 slotIcons[i].enabled = true;
                 slotIcons[i].sprite = item.icon;
+                slotLabels[i].text = $"{i + 1}";
+            }
+            else if (item != null)
+            {
+                slotIcons[i].enabled = false;
+                string initial = string.IsNullOrEmpty(item.displayName) ? "?" : item.displayName.Substring(0, 1).ToUpper();
+                slotLabels[i].text = $"{i + 1}\n{initial}";
             }
             else
             {
                 slotIcons[i].enabled = false;
+                slotLabels[i].text = $"{i + 1}";
             }
         }
     }
