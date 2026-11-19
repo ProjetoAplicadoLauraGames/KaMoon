@@ -13,12 +13,22 @@ public class LeitorPistaArmario : MonoBehaviour, IInteragivel
 
     private bool notaAberta = false;
 
+    [Header("Audio")]
+    private AudioSource audioSource;
+    [SerializeField] private AudioClip[] abrirSom;
+
     void Start()
     {
         if (painelNota != null)
             painelNota.SetActive(false);
         
         portaArmario = transform.GetChild(0).gameObject;
+
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
     }
 
     public void Interagir()
@@ -28,9 +38,14 @@ public class LeitorPistaArmario : MonoBehaviour, IInteragivel
             if (!isOpen) {
                 portaArmario.transform.Rotate(0f, -100f, 0f);
                 isOpen = true;
+                audioSource.clip = abrirSom[0];
+                audioSource.Play();
             } else {
                 portaArmario.transform.Rotate(0f, 100f, 0f);
-                isOpen = false;}
+                isOpen = false;
+                audioSource.clip = abrirSom[1];
+                audioSource.Play();
+                }
         }
     }
 

@@ -35,6 +35,9 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     public Hotbar hotbar;
     public Transform destinoTampa;
 
+    [Header("Audio Placa")]
+    [SerializeField] private AudioSource audioSource;
+
     private string codigoAtual = "";
     private bool puzzleResolvido = false;
     private int indiceBotaoAtual = 0;
@@ -98,11 +101,9 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
             tampaFora = true;
             if (tampaKeypad != null) tampaKeypad.transform.position= destinoTampa.position;
             StartCoroutine(TypeTextRoutine("The keypad is now accessible."));
+            if (audioSource != null) audioSource.Play();
             return;
         }
-
-        
-
 
 
         codigoAtual = "";
