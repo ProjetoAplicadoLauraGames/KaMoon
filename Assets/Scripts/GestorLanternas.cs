@@ -5,7 +5,7 @@ public class GestorLanternas : MonoBehaviour
 {
     [Header("Luzes das Lanternas (Spotlights)")]
     public Light lanternaP1; // Lanterna do Player 1 (Teclado)
-    public Light lanternaP2; // Lanterna do Player 2 (Comando Xbox)
+    public Light lanternaP2; // Lanterna do Player 2 (teclado / comando)
 
     [Header("Configuracao Inicial")]
     public bool p1ComecaLigado = true;
@@ -54,15 +54,15 @@ public class GestorLanternas : MonoBehaviour
     /// <summary>Pede ao servidor para alternar a lanterna deste jogador (rede).</summary>
     private void VerificarInputRede()
     {
-        // Cada cliente so controla a lanterna do seu proprio jogador.
-        if (GameSession.room == 1 && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
-        {
-            NetMatch.PedirLanterna();
-            return;
-        }
+        // Em rede os dois jogadores usam o mesmo esquema de teclado: a tecla F
+        // alterna a propria lanterna. O servidor decide o dono pela ligacao (sala).
+        bool pedido = Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame;
 
+        // O botao Y do comando mantem-se como alternativa do Player 2.
         if (GameSession.room == 2 && Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame)
-            NetMatch.PedirLanterna();
+            pedido = true;
+
+        if (pedido) NetMatch.PedirLanterna();
     }
 
     /// <summary>Aplica a lanterna ativa decidida pelo servidor (1 ou 2; 0 = nenhuma).</summary>
