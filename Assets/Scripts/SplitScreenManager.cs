@@ -179,8 +179,12 @@ public class SplitScreenManager : MonoBehaviour
         ApplyLayout();
     }
 
+    [Header("HUD")]
+    public bool showLabels = true;
+
     private void OnGUI()
     {
+        if (!showLabels) return;
         if (!showPlayerLabels || singleView)
             return;
 
