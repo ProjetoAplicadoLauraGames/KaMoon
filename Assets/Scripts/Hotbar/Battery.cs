@@ -25,7 +25,7 @@ public class Battery : MonoBehaviour
     [SerializeField] private Light flashlight;
 
     [Header("UI")]
-    [Tooltip("Barra de carga no canto do ecrã (útil no protótipo).")]
+    [Tooltip("Barra IMGUI de carga no canto do ecrã (sem texto; substituída pelo GameHud na cena de jogo).")]
     [SerializeField] private bool showChargeBar = true;
 
     [Header("Audio")]
@@ -162,8 +162,5 @@ public class Battery : MonoBehaviour
         GUI.color = Charge > 0.3f ? Color.green : Color.red;
         GUI.Box(fill, GUIContent.none);
         GUI.color = Color.white;
-        GUI.Label(new Rect(x, 30f, w, 20f), $"Bateria P{playerNumber}: {(int)(Charge * 100f)}%");
-        if (IsDepleted)
-            GUI.Label(new Rect(x, 50f, w, 20f), $"P{playerNumber} SEM BATERIA");
     }
 }

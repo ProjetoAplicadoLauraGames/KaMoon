@@ -67,6 +67,10 @@ public class CapsuleMovement : MonoBehaviour
     {
         if (GameSession.multiplayer && GameSession.room == 2)
         {
+            // Em rede o P2 tem o mesmo controlo do P1 (WASD + rato) na sua maquina.
+            // O Player2.prefab traz useGamepad = true para o splitscreen local;
+            // aqui ele faria o stick roubar prioridade ao teclado.
+            useGamepad = false;
             useArrowKeys = false;
             mouseLook = true;
         }

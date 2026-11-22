@@ -1922,6 +1922,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: bookshelf
       objectReference: {fileID: 0}
+    - target: {fileID: 1865137276158705753, guid: 6e376a6c3792d054396be79e31593bac, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7968752903841728336, guid: 6e376a6c3792d054396be79e31593bac, type: 3}
       propertyPath: puzzleScript
       value: 

@@ -17,6 +17,24 @@ public class GameHud : MonoBehaviour
             if (b.PlayerNumber == 1) bateriaP1 = b;
             else if (b.PlayerNumber == 2) bateriaP2 = b;
         }
+
+        // Em rede cada ecra pertence a um jogador: mostra so a barra dele,
+        // ao mesmo modo que a Hotbar esconde a barra alheia.
+        if (GameSession.multiplayer)
+            EsconderPainel(GameSession.room == 1 ? cargaP2 : cargaP1,
+                           GameSession.room == 1 ? "HudP2" : "HudP1");
+    }
+
+    /// <summary>Sobe da barra ate ao painel HudP1/HudP2 e desativa-o (inclui o fundo).</summary>
+    private static void EsconderPainel(Image barra, string nomePainel)
+    {
+        if (barra == null) return;
+
+        Transform painel = barra.transform;
+        while (painel != null && painel.name != nomePainel)
+            painel = painel.parent;
+
+        if (painel != null) painel.gameObject.SetActive(false);
     }
 
     private void Update()
