@@ -30,6 +30,13 @@ public class TimerScript : MonoBehaviour
 
     void Update()
     {
+        if (GameTimer.EmCurtoCircuito)
+        {
+            if (timerText1 != null) timerText1.text = "";
+            if (timerText2 != null) timerText2.text = "";
+            return;
+        }
+
         string texto = GameTimer.Formatar(GameTimer.TempoRestante);
 
         if (timerText1 != null)

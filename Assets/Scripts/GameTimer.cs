@@ -31,6 +31,14 @@ public class GameTimer : MonoBehaviour
 
     public static float TempoRestante { get; private set; } = 600f;
     public static bool EmAlerta => TempoRestante > 0f && TempoRestante <= LimiteAlerta;
+    public static bool EmCurtoCircuito { get; private set; } = false;
+    public static float MultiplicadorVelocidade { get; set; } = 1f;
+
+    public static void DefinirCurtoCircuito(bool ativo, float multiplicador = 2f)
+    {
+        EmCurtoCircuito = ativo;
+        MultiplicadorVelocidade = ativo ? multiplicador : 1f;
+    }
 
     /// <summary>Pulso suave de cor e escala, aplicado pelos ecras do relogio.</summary>
     public static void AplicarAlerta(TMP_Text texto, Color corNormal, Vector3 escalaNormal)
@@ -60,6 +68,9 @@ public class GameTimer : MonoBehaviour
     {
         instancia = null;
         TempoRestante = 600f;
+
+        EmCurtoCircuito = false;
+        MultiplicadorVelocidade = 1f;
     }
 
     private void Awake()
@@ -101,6 +112,8 @@ public class GameTimer : MonoBehaviour
     {
         TempoRestante = TempoInicial;
         if (instancia != null) instancia.terminado = false;
+        EmCurtoCircuito = false;
+        MultiplicadorVelocidade = 1f;
     }
 
     private void Update()
@@ -123,7 +136,7 @@ public class GameTimer : MonoBehaviour
             return;
         }
 
-        TempoRestante = Mathf.Max(0f, TempoRestante - Time.deltaTime);
+        TempoRestante = Mathf.Max(0f, TempoRestante - Time.deltaTime * MultiplicadorVelocidade);
     }
 
     // Valores unicos para todos os puzzles, configuraveis no GameTimer da cena.

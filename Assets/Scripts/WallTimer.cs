@@ -50,9 +50,19 @@ public class WallTimer : MonoBehaviour
 
     private void Update()
     {
+        if (displays == null) return;
+
+        if (GameTimer.EmCurtoCircuito)
+        {
+            for (int i = 0; i < displays.Length; i++)
+            {
+                if (displays[i] != null) displays[i].text = "";
+            }
+            return;
+        }
+
         string texto = GameTimer.Formatar(GameTimer.TempoRestante);
 
-        if (displays == null) return;
         for (int i = 0; i < displays.Length; i++)
         {
             if (displays[i] == null) continue;

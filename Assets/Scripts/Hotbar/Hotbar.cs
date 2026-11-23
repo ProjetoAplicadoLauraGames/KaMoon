@@ -56,6 +56,10 @@ public class Hotbar : MonoBehaviour
 
     public int SelectedIndex { get; private set; }
 
+    public string SelectedItemId => (items != null && SelectedIndex >= 0 && SelectedIndex < items.Length && items[SelectedIndex] != null)
+        ? items[SelectedIndex].itemId
+        : "";
+
     /// <summary>Número do jogador dono desta hotbar (1 = esquerda/teclado, 2 = direita/comando).</summary>
     public int PlayerNumber => playerNumber;
     private GestorLanternas lanternManager;
