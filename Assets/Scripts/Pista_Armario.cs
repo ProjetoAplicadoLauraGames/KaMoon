@@ -9,13 +9,16 @@ public class LeitorPistaArmario : MonoBehaviour, IInteragivel
     public GameObject painelNota; // O Painel_NotaArmario
 
     private GameObject portaArmario;
-    private bool isOpen = false;
+    [HideInInspector] public bool isOpen = false;
 
     private bool notaAberta = false;
 
     [Header("Audio")]
-    private AudioSource audioSource;
-    [SerializeField] private AudioClip[] abrirSom;
+    public AudioSource audioSource;
+    public AudioClip[] abrirSom;
+
+    private Collider lockerCollider;
+    private Collider doorCollider;
 
     void Start()
     {
@@ -23,6 +26,8 @@ public class LeitorPistaArmario : MonoBehaviour, IInteragivel
             painelNota.SetActive(false);
         
         portaArmario = transform.GetChild(0).gameObject;
+        lockerCollider = GetComponent<Collider>();
+        doorCollider = transform.GetChild(0).GetComponent<Collider>();
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
@@ -31,21 +36,24 @@ public class LeitorPistaArmario : MonoBehaviour, IInteragivel
         }
     }
 
+    void Update()
+    {
+        #if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+                FecharNota();
+
+            if (Gamepad.current != null && Gamepad.current.buttonEast.wasPressedThisFrame)
+                FecharNota();
+        #endif
+    }
+
     public void Interagir()
     {
         if (portaArmario != null)
         {
-            if (!isOpen) {
-                portaArmario.transform.Rotate(0f, -100f, 0f);
-                isOpen = true;
-                audioSource.clip = abrirSom[0];
-                audioSource.Play();
-            } else {
-                portaArmario.transform.Rotate(0f, 100f, 0f);
-                isOpen = false;
-                audioSource.clip = abrirSom[1];
-                audioSource.Play();
-                }
+            if (isOpen) {
+                AbrirNota();
+            }
         }
     }
 
