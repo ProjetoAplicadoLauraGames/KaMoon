@@ -9663,7 +9663,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c4e2b7a1f6d4e5b8a3c0f2d6e7b1a94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameTimer
-  tempoInicial: 10
+  tempoInicial: 600
   penalidadeErro: 20
   recompensaAcerto: 20
   corAlerta: {r: 1, g: 0.2, b: 0.2, a: 1}
