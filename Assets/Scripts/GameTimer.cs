@@ -24,6 +24,7 @@ public class GameTimer : MonoBehaviour
     [Tooltip("Escala maxima do texto no ponto do pulso."), SerializeField, Min(1f)] private float escalaMaxima = 1.08f;
 
     private static GameTimer instancia;
+    [SerializeField] private GameOverManager gameOver;
 
     public static float TempoInicial => instancia != null ? instancia.tempoInicial : 600f;
     public static float PenalidadeErro => instancia != null ? instancia.penalidadeErro : 20f;
@@ -131,8 +132,7 @@ public class GameTimer : MonoBehaviour
         {
             terminado = true;
             TempoRestante = 0f;
-            GameOverManager fim = FindAnyObjectByType<GameOverManager>();
-            if (fim != null) fim.GameOver();
+            if (gameOver != null) gameOver.GameOver();
             return;
         }
 

@@ -1714,7 +1714,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c11820e27a961f4da6482b757adfba6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  Bomba: {fileID: 0}
+  Bomba: {fileID: 1478858594}
   GameOverUI: {fileID: 1332752248}
 --- !u!1 &319544635
 GameObject:
@@ -3447,7 +3447,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 101
@@ -7963,6 +7963,17 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2986738594975181715, guid: 10020468605d6c843bfeb202689fb8cb, type: 3}
   m_PrefabInstance: {fileID: 101817699}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1478858594 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6519272375756831757, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
+  m_PrefabInstance: {fileID: 1972456817}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e35a521ad463af44fbf8b5c67968f319, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExplosaoBomba
 --- !u!1 &1502721257 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 907534054192770752, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
@@ -9652,12 +9663,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c4e2b7a1f6d4e5b8a3c0f2d6e7b1a94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameTimer
-  tempoInicial: 600
+  tempoInicial: 10
   penalidadeErro: 20
   recompensaAcerto: 20
   corAlerta: {r: 1, g: 0.2, b: 0.2, a: 1}
   velocidadePulso: 1.2
   escalaMaxima: 1.08
+  gameOver: {fileID: 303886131}
 --- !u!1001 &1945803141
 PrefabInstance:
   m_ObjectHideFlags: 0
