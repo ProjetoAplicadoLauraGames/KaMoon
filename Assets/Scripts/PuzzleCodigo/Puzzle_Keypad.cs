@@ -20,7 +20,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     public Button[] botoesGrelha = new Button[12];
 
     [Header("Configuração do Código")]
-    public string codigoCorreto = "4281";
+    public string codigoCorreto;
     public int limiteDigitos = 4;
 
     [Header("Jogador (Player 2 - Comando)")]
