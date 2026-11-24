@@ -28,7 +28,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
 
     [Header("Tampa do Keypad")]
     public GameObject tampaKeypad;
-    private bool tampaFora = false;
+    private bool tampaFora = true;
     public Hotbar hotbar;
     public Transform destinoTampa;
 
@@ -88,7 +88,7 @@ public class Puzzle_Keypad : MonoBehaviour, IInteragivel
     {
         if (puzzleResolvido || painelKeypad == null || painelKeypad.activeSelf) return;
 
-        if (!tampaFora && !hotbar.HasItem("screwdriver"))
+        if (!tampaFora) //&& !hotbar.HasItem("screwdriver"))
         {
             StartCoroutine(TypeTextRoutine("Might need a screwdriver to open this."));
             return;
