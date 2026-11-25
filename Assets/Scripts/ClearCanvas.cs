@@ -23,7 +23,7 @@ public class ClearCanvas : MonoBehaviour
     {
         if (canvas != null)
         {
-            for (int i = 3; i < canvas.transform.childCount; i++)
+            for (int i = 4; i < canvas.transform.childCount; i++)
                 Destroy(canvas.transform.GetChild(i).gameObject);
         }
 
