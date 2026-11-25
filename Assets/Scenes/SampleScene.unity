@@ -1505,7 +1505,8 @@ PrefabInstance:
       propertyPath: usarTeclado
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 226856670465363793, guid: ce78cd577451c474a8f88727cc2cc0e8, type: 3}
     m_RemovedGameObjects:
     - {fileID: 4417765017908849710, guid: ce78cd577451c474a8f88727cc2cc0e8, type: 3}
     m_AddedGameObjects: []
@@ -1569,8 +1570,8 @@ MonoBehaviour:
   useKeyP1: 21
   useGamepad: 1
   flashlight: {fileID: 0}
-  paperPrefab: {fileID: 100100000, guid: 735505e210523374f846a7d7b645152d, type: 3}
-  canvas: {fileID: 0}
+  paperPrefab: {fileID: 1308197439732938547, guid: 735505e210523374f846a7d7b645152d, type: 3}
+  canvas: {fileID: 589905763}
   slotSize: 72
   slotSpacing: 10
   emptyColor: {r: 0.06, g: 0.12, b: 0.13, a: 0.95}
@@ -9971,7 +9972,7 @@ PrefabInstance:
     - target: {fileID: 1503970948375796773, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
       propertyPath: hotbar
       value: 
-      objectReference: {fileID: 1724678368}
+      objectReference: {fileID: 265295955}
     - target: {fileID: 1503970948375796773, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
       propertyPath: textoTampa
       value: 
@@ -10034,7 +10035,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2767593640624518890, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
       propertyPath: onlyPlayerNumber
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3088071072750236483, guid: cb25086a4f3a6c040bde2a68642d2e5c, type: 3}
       propertyPath: m_IsActive
